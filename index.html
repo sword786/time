@@ -1,0 +1,3417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Period Notifier</title>
+    <!-- Favicon and Apple Touch Icon (Placeholder) -->
+    <link rel="icon" href="https://placehold.co/32x32/10B981/ffffff?text=CPN" type="image/png">
+    <link rel="apple-touch-icon" href="https://placehold.co/180x180/10B981/ffffff?text=CPN">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for potential overrides or specific elements not easily handled by Tailwind */
+        body {
+            font-family: "Inter", sans-serif; /* Using Inter font as per guidelines */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f0f4f8; /* Default light background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Ensure it takes full viewport height */
+            margin: 0;
+            padding: 20px; /* Padding for smaller screens */
+            transition: background-color 0.3s ease-in-out; /* Smooth transition for background */
+            filter: brightness(100%); /* Default brightness */
+        }
+
+        /* Message box styling (reused from previous version) */
+        .message-box-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Ensure it's on top */
+        }
+
+        .message-box {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 90%;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .message-box-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .message-box-content {
+            font-size: 18px;
+            color: #34495e;
+            margin-bottom: 25px;
+        }
+
+        .message-box-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .message-box-button {
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .message-box-button.primary {
+            background-color: var(--accent-color-600); /* Use accent color */
+            color: white;
+        }
+        .message-box-button.primary:hover {
+            background-color: var(--accent-color-700);
+            transform: translateY(-2px);
+        }
+
+        /* Custom properties for dynamic accent color */
+        :root {
+            --accent-color-500: #10B981; /* Default: Green-500 */
+            --accent-color-600: #059669; /* Default: Green-600 */
+            --accent-color-700: #047857; /* Default: Green-700 */
+
+            /* Light mode defaults */
+            --bg-color: #f0f4f8;
+            --card-bg-color: #ffffff;
+            --text-color-primary: #2c3e50;
+            --text-color-secondary: #34495e;
+            --text-color-muted: #7f8c8d;
+            --border-color: #e2e8f0;
+            --input-bg-color: #ffffff;
+        }
+
+        body.dark-mode {
+            --bg-color: #1a202c; /* Dark background */
+            --card-bg-color: #2d3748; /* Dark card background */
+            --text-color-primary: #f8f8f2; /* Light text for dark mode */
+            --text-color-secondary: #a0aec0;
+            --text-color-muted: #cccccc; /* Lighter for better contrast in dark mode */
+            --border-color: #4a5568;
+            --input-bg-color: #4a5568;
+        }
+
+        /* Apply theme variables */
+        body {
+            background-color: var(--bg-color);
+        }
+        .themed-card {
+            background-color: var(--card-bg-color);
+            color: var(--text-color-primary);
+            border-color: var(--border-color);
+        }
+        .text-themed-primary {
+            color: var(--text-color-primary);
+        }
+        .text-themed-secondary {
+            color: var(--text-color-secondary);
+        }
+        .text-themed-muted {
+            color: var(--text-color-muted);
+        }
+        .input-themed {
+            background-color: var(--input-bg-color);
+            color: var(--text-color-primary);
+            border-color: var(--border-color);
+        }
+        .btn-primary {
+            background-color: var(--accent-color-600);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: var(--accent-color-700);
+            transform: translateY(-2px); /* Keep hover effect consistent */
+        }
+        .text-accent-primary {
+            color: var(--accent-color-600);
+        }
+        .form-checkbox:checked {
+            background-color: var(--accent-color-600);
+            border-color: var(--accent-color-600);
+        }
+        .form-checkbox.text-accent-primary:focus {
+            box-shadow: 0 0 0 3px rgba(var(--accent-color-500-rgb), 0.5); /* Use rgb for ring color */
+        }
+
+        /* Active navigation button styling within the hamburger menu */
+        .nav-button.active {
+            background-color: var(--accent-color-500);
+            color: white;
+            font-weight: bold;
+        }
+        .nav-button.active:hover {
+            background-color: var(--accent-color-600);
+        }
+
+        /* Specific styling for saved schedules */
+        .day-schedule-card {
+            background-color: var(--card-bg-color); /* Use card background for day groups */
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+        .day-schedule-title {
+            font-size: 1.5rem; /* 24px */
+            font-weight: 700; /* bold */
+            color: var(--text-color-primary);
+            margin-bottom: 1rem;
+        }
+        .event-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            color: var(--text-color-secondary);
+        }
+        .event-time {
+            font-weight: 600; /* semi-bold */
+            color: var(--accent-color-600);
+            width: 80px; /* fixed width for alignment */
+            flex-shrink: 0;
+        }
+        .event-details {
+            flex-grow: 1;
+            margin-left: 12px;
+        }
+
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Splash Screen Styling */
+        #splashScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--accent-color-600); /* Splash screen background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+            z-index: 10000; /* Above everything else */
+            opacity: 1;
+            transition: opacity 1s ease-out;
+        }
+        #splashScreen.hidden {
+            opacity: 0;
+            pointer-events: none; /* Prevent interaction after fade */
+        }
+        #splashScreen .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-top: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Hamburger Menu Styling */
+        .hamburger-icon {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100; /* Above content, below message box/splash */
+            background: var(--card-bg-color);
+            padding: 10px;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 40px;
+            height: 40px;
+            align-items: center;
+        }
+        .hamburger-icon span {
+            display: block;
+            width: 70%;
+            height: 3px;
+            background-color: var(--text-color-primary);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .hamburger-icon.open span:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .hamburger-icon.open span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger-icon.open span:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent overlay */
+            z-index: 99; /* Below message box, above main content */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .sidebar-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px; /* Hidden off-screen */
+            width: 280px; /* Width of sidebar */
+            height: 100%;
+            background-color: var(--card-bg-color);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            z-index: 100; /* Same as hamburger, above overlay */
+            transition: left 0.3s ease;
+            padding: 20px;
+            padding-top: 80px; /* Space for hamburger icon */
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar.open {
+            left: 0; /* Slide in */
+        }
+        .sidebar-nav-item {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            color: var(--text-color-secondary);
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .sidebar-nav-item:hover {
+            background-color: var(--accent-color-500);
+            color: white;
+        }
+        .sidebar-nav-item.active {
+            background-color: var(--accent-color-600);
+            color: white;
+        }
+
+        /* Adjust main content for smaller screens to make space for hamburger */
+        @media (max-width: 640px) {
+            .themed-card {
+                margin-left: 20px; /* Adjust margin to account for hamburger */
+                margin-right: 20px;
+            }
+        }
+
+        /* Calendar View Specific Styles */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-color-primary);
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+        .calendar-weekday {
+            font-weight: bold;
+            color: var(--accent-color-600);
+            padding: 8px 0;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .calendar-day {
+            padding: 8px 0;
+            border-radius: 8px;
+            background-color: var(--input-bg-color);
+            color: var(--text-color-secondary);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            min-height: 50px; /* Ensure a minimum height for touch targets */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            position: relative; /* For event indicators */
+            font-size: 1.125rem; /* text-lg */
+        }
+        .calendar-day:hover {
+            background-color: var(--border-color);
+        }
+        .calendar-day.current-day {
+            background-color: var(--accent-color-500);
+            color: white;
+            font-weight: bold;
+        }
+        .calendar-day.other-month {
+            opacity: 0.5;
+            pointer-events: none; /* Disable clicks on other month days */
+        }
+        .calendar-event-indicator {
+            position: absolute;
+            bottom: 4px;
+            display: flex;
+            gap: 2px;
+        }
+        .calendar-event-indicator .dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent-color-600);
+            border-radius: 50%;
+        }
+        .calendar-event-indicator .square {
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent-color-600);
+            border-radius: 2px;
+        }
+        .calendar-button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background-color: var(--accent-color-500);
+            color: white;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+        .calendar-button:hover {
+            background-color: var(--accent-color-600);
+        }
+
+        /* Day Details Modal (Message Box reused) */
+        .day-details-modal-content {
+            text-align: left;
+            padding: 0 15px;
+        }
+        .day-details-modal-content h3 {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            margin-bottom: 10px;
+            color: var(--accent-color-600);
+        }
+        .day-details-modal-content ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .day-details-modal-content li {
+            margin-bottom: 8px;
+            color: var(--text-color-secondary);
+        }
+        .day-details-modal-content li strong {
+            color: var(--text-color-primary);
+        }
+
+        /* AI Schedule Section */
+        #aiScheduleOutput pre {
+            background-color: var(--input-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: monospace;
+            color: var(--text-color-primary);
+            font-size: 0.9rem;
+        }
+        #aiScheduleOutput .ai-output-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color-600);
+        }
+        #aiScheduleOutput ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #aiScheduleOutput li {
+            margin-bottom: 0.25rem;
+        }
+
+        .spinner-ai {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid var(--accent-color-600);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 0.5rem;
+        }
+
+    </style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#10B981">
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+    <!-- Splash Screen -->
+    <div id="splashScreen">
+        <img src="https://placehold.co/128x128/ffffff/10B981?text=CPN" alt="App Icon" class="mb-4 rounded-full">
+        <p class="text-4xl">Class Period Notifier</p>
+        <div class="spinner"></div>
+        <p class="mt-4 text-lg">Loading your schedule...</p>
+    </div>
+
+    <!-- Hamburger Icon -->
+    <div id="hamburgerIcon" class="hamburger-icon" role="button" aria-label="Open navigation menu" aria-expanded="false">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="sidebar">
+        <h2 class="text-2xl font-bold text-themed-primary mb-6">Menu</h2>
+        <nav class="flex-grow">
+            <button id="navDashboard" onclick="showPage('dashboardPage')" class="sidebar-nav-item">Dashboard</button>
+            <button id="navSchedule" onclick="showPage('schedulePage')" class="sidebar-nav-item">New Schedule</button>
+            <button id="navSavedSchedules" onclick="showPage('savedSchedulesPage')" class="sidebar-nav-item">Saved Schedules</button>
+            <button id="navActivities" onclick="showPage('activitiesPage')" class="sidebar-nav-item">Activities</button>
+            <button id="navCalendarView" onclick="showPage('calendarViewPage')" class="sidebar-nav-item">Calendar View</button>
+            <button id="navAdvancedFeatures" onclick="showPage('advancedFeaturesPage')" class="sidebar-nav-item">Advanced Features</button>
+            <button id="navSettings" onclick="showPage('settingsPage')" class="sidebar-nav-item">Settings</button>
+        </nav>
+    </aside>
+
+    <div class="themed-card p-6 sm:p-8 md:p-10 rounded-2xl shadow-xl w-full max-w-lg mx-auto transform hover:scale-105 transition-transform duration-300 ease-in-out">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-center text-themed-primary mb-6 sm:mb-8 tracking-tight">
+            <span class="text-accent-primary">Class</span> Period Notifier
+        </h1>
+
+        <!-- Dashboard Page -->
+        <div id="dashboardPage" class="page">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-themed-primary mb-6">Dashboard</h2>
+            <div class="space-y-4">
+                <div class="p-4 rounded-xl shadow bg-gray-100 themed-card">
+                    <p class="text-lg text-themed-secondary">Current Time:</p>
+                    <p id="currentTimeDisplay" class="text-3xl font-bold text-accent-primary mt-2">--:--:--</p>
+                </div>
+                <div class="p-4 rounded-xl shadow bg-gray-100 themed-card">
+                    <p class="text-lg text-themed-secondary">Next Upcoming Event:</p>
+                    <p id="nextEventDisplay" class="text-2xl font-semibold text-themed-primary mt-2">No upcoming events.</p>
+                </div>
+            </div>
+            <button
+                id="testNotificationButton"
+                onclick="testNotification()"
+                class="w-full mt-8 font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg sm:text-xl btn-primary"
+            >
+                Test Notification
+            </button>
+        </div>
+
+        <!-- Schedule Page (New Schedule / Edit Day Schedule) -->
+        <div id="schedulePage" class="page hidden">
+            <h2 id="schedulePageTitle" class="text-2xl sm:text-3xl font-semibold text-themed-primary mb-6">Set New Class Schedule</h2>
+
+            <!-- Day Selector for Schedule -->
+            <div class="mb-4">
+                <label for="scheduleDaySelector" class="block text-themed-secondary text-lg font-medium mb-2">Select Day to Edit:</label>
+                <select id="scheduleDaySelector" class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                    <option value="Mon">Monday</option>
+                    <option value="Tue">Tuesday</option>
+                    <option value="Wed">Wednesday</option>
+                    <option value="Thu">Thursday</option>
+                    <option value="Fri">Friday</option>
+                    <option value="Sat">Saturday</option>
+                    <option value="Sun">Sunday</option>
+                </select>
+            </div>
+
+            <!-- Number of Periods per Day (for selected day) -->
+            <div class="mb-6 p-4 rounded-xl border border-gray-200 themed-card">
+                <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-4">Period Settings for Selected Day:</h3>
+                <div class="mb-4">
+                    <label for="numPeriodsInput" class="block text-themed-secondary text-lg font-medium mb-2">Number of Periods:</label>
+                    <input type="number" id="numPeriodsInput" min="1" max="15" value="9"
+                           class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                    <span id="numPeriodsValue" class="text-themed-muted text-sm mt-1 block text-right">9 Periods</span>
+                </div>
+            </div>
+
+            <!-- Timetable File Upload (now imports for all days in CSV) -->
+            <div class="mb-6 p-4 rounded-xl border border-gray-200 themed-card">
+                <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-4">Import/Export All Schedules:</h3>
+                <div class="mb-4">
+                    <label for="timetableFileInput" class="block text-themed-secondary text-lg font-medium mb-2">Import All Schedules (CSV):</label>
+                    <input type="file" id="timetableFileInput" accept=".csv,.txt"
+                           class="input-themed w-full text-lg file:mr-4 file:py-2 file:px-4
+                                  file:rounded-full file:border-0 file:text-sm file:font-semibold
+                                  file:bg-accent-color-500 file:text-white hover:file:bg-accent-color-600 cursor-pointer">
+                    <p class="text-themed-muted text-sm mt-1">Format: `Day,Time,Subject,Class,Name,Details` (Day is Mon/Tue/etc). Example: `Mon,09:00,Math,10A,,` or `Wed,14:00,,,Team Meeting,Project Discussion`</p>
+                    <button onclick="processTimetableFile()" class="w-full mt-4 font-bold py-2 px-4 rounded-full text-lg btn-primary">Load All from File</button>
+                </div>
+
+                <!-- Reset Schedule -->
+                <button onclick="resetSchedule()" class="w-full mt-4 font-bold py-2 px-4 rounded-full text-lg bg-red-500 text-white hover:bg-red-600 transition-colors duration-200 ease-in-out">Reset All Schedule Data</button>
+                
+                <!-- Export Schedule -->
+                <button onclick="exportScheduleToFile()" class="w-full mt-4 font-bold py-2 px-4 rounded-full text-lg btn-primary">Export All to CSV</button>
+            </div>
+
+            <!-- Period Timings Section (for selected day) -->
+            <div class="mb-6 p-4 rounded-xl border border-gray-200 themed-card">
+                <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-4">Set Period Details for <span id="currentEditingDay" class="text-accent-primary">Monday</span>:</h3>
+                <div id="periodInputs" class="grid grid-cols-1 sm:grid-cols-1 gap-4">
+                    <!-- Period time, subject, and class inputs will be generated here by JavaScript for the selected day -->
+                </div>
+            </div>
+
+            <button
+                id="savePeriodsButton"
+                onclick="savePeriods()"
+                class="w-full font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg sm:text-xl btn-primary"
+            >
+                Save Periods for Day
+            </button>
+        </div>
+
+        <!-- Saved Schedules Page -->
+        <div id="savedSchedulesPage" class="page hidden">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-themed-primary mb-6">Your Saved Schedules</h2>
+            
+            <div id="dailySchedulesContainer" class="space-y-6">
+                <!-- Daily schedules will be rendered here -->
+                <p class="text-themed-muted text-center">No schedule data to display. Please set a schedule on the "New Schedule" page.</p>
+            </div>
+
+            <button
+                id="editSavedScheduleButton"
+                onclick="editSchedule()"
+                class="w-full mt-8 font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg sm:text-xl btn-primary"
+            >
+                Edit Current Schedule (Go to New Schedule Page)
+            </button>
+        </div>
+
+
+        <!-- Activities Page -->
+        <div id="activitiesPage" class="page hidden">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-themed-primary mb-6">Set Your Activities Schedule</h2>
+
+            <!-- Day Selector for Activities -->
+            <div class="mb-4">
+                <label for="activityDaySelector" class="block text-themed-secondary text-lg font-medium mb-2">Select Day for Activities:</label>
+                <select id="activityDaySelector" class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                    <option value="Mon">Monday</option>
+                    <option value="Tue">Tuesday</option>
+                    <option value="Wed">Wednesday</option>
+                    <option value="Thu">Thursday</option>
+                    <option value="Fri">Friday</option>
+                    <option value="Sat">Saturday</option>
+                    <option value="Sun">Sunday</option>
+                </select>
+            </div>
+
+            <!-- Activity Inputs Section (for selected day) -->
+            <div class="mb-6 p-4 rounded-xl border border-gray-200 themed-card">
+                <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-4">Activity Details for <span id="currentEditingActivityDay" class="text-accent-primary">Monday</span>:</h3>
+                <div id="activityInputs" class="grid grid-cols-1 sm:grid-cols-1 gap-4">
+                    <!-- Activity time, name, and details inputs will be generated here by JavaScript -->
+                </div>
+                <button onclick="addActivityInput()" class="mt-4 w-full font-bold py-2 px-4 rounded-full text-lg btn-primary">+ Add Activity</button>
+            </div>
+
+            <button
+                id="saveActivitiesButton"
+                onclick="saveActivities()"
+                class="w-full font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg sm:text-xl btn-primary"
+            >
+                Save Activities for Day
+            </button>
+        </div>
+
+        <!-- Calendar View Page -->
+        <div id="calendarViewPage" class="page hidden">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-themed-primary mb-6">Calendar View</h2>
+            <div class="p-4 rounded-xl border border-gray-200 themed-card">
+                <div class="calendar-header">
+                    <button onclick="changeCalendarMonth(-1)" class="calendar-button">&lt; Prev</button>
+                    <span id="currentMonthYear"></span>
+                    <button onclick="changeCalendarMonth(1)" class="calendar-button">Next &gt;</button>
+                </div>
+                <div id="calendarGrid" class="calendar-grid">
+                    <div class="calendar-weekday">Sun</div>
+                    <div class="calendar-weekday">Mon</div>
+                    <div class="calendar-weekday">Tue</div>
+                    <div class="calendar-weekday">Wed</div>
+                    <div class="calendar-weekday">Thu</div>
+                    <div class="calendar-weekday">Fri</div>
+                    <div class="calendar-weekday">Sat</div>
+                    <!-- Calendar days will be rendered here by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Advanced Features Page -->
+        <div id="advancedFeaturesPage" class="page hidden">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-themed-primary mb-6">Advanced Features</h2>
+            <div class="space-y-6">
+                <div class="p-4 rounded-xl border border-gray-200 themed-card">
+                    <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-2">🚀 Desktop Notifications</h3>
+                    <p class="text-themed-secondary">Receive notifications even when the app is in the background or browser is closed.</p>
+                    <button onclick="requestDesktopNotificationPermission()" class="mt-4 font-bold py-2 px-4 rounded-full text-lg btn-primary">Enable Desktop Notifications</button>
+                    <p class="text-themed-muted text-sm mt-2"><i>Status: <span class="text-accent-primary">Implemented!</span> Requires browser permission.</i></p>
+                </div>
+                <div class="p-4 rounded-xl border border-gray-200 themed-card">
+                    <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-2">🧘‍♀️ Break Reminders & Transitions</h3>
+                    <p class="text-themed-secondary">Get reminders when your breaks between periods are ending, helping you transition smoothly.</p>
+                    <p class="text-themed-muted text-sm mt-2"><i>Status: <span class="text-accent-primary">Implemented!</span> Configure in Settings.</i></p>
+                </div>
+                <div class="p-4 rounded-xl border border-gray-200 themed-card">
+                    <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-2">☁️ Cloud Sync & Multi-User Support</h3>
+                    <p class="text-themed-secondary">Save your schedule to the cloud, access it from any device, and share with others (e.g., family members).</p>
+                    <p class="text-themed-muted text-sm mt-2"><i>Status: Idea - Requires backend service like Firebase Firestore.</i></p>
+                </div>
+                <div class="p-4 rounded-xl border border-gray-200 themed-card">
+                    <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-2">🗓️ Visual Calendar View</h3>
+                    <p class="text-themed-secondary">See your entire week's schedule at a glance in a clean calendar format.</p>
+                    <p class="text-themed-muted text-sm mt-2"><i>Status: <span class="text-accent-primary">Implemented!</span> See "Calendar View" in menu.</i></p>
+                </div>
+                 <div class="p-4 rounded-xl border border-gray-200 themed-card">
+                    <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-2">🗣️ Custom Notification Sounds</h3>
+                    <p class="text-themed-secondary">Upload your own audio files for notifications instead of using the built-in ones.</p>
+                    <p class="text-themed-muted text-sm mt-2"><i>Status: <span class="text-accent-primary">Implemented!</span> Configure in Settings.</i></p>
+                </div>
+                <div class="p-4 rounded-xl border border-gray-200 themed-card">
+                    <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-2">📍 Location-Based Reminders</h3>
+                    <p class="text-themed-secondary">Get reminders when you arrive at or leave certain locations (e.g., "Arrived at campus, next class in 10 minutes!").</p>
+                    <p class="text-themed-muted text-sm mt-2"><i>Status: Idea - Requires Geolocation API and careful permission handling.</i></p>
+                </div>
+                
+                <!-- AI Schedule Suggestions (NEW) -->
+                <div class="p-4 rounded-xl border border-gray-200 themed-card">
+                    <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mb-2">🤖 AI Schedule Suggestions</h3>
+                    <p class="text-themed-secondary">Describe your ideal day's schedule in natural language, and let AI suggest a timetable.</p>
+                    
+                    <div class="mt-4">
+                        <label for="aiScheduleInput" class="block text-themed-secondary text-lg font-medium mb-2">Describe your desired schedule for a day (e.g., "5 periods starting at 9 AM, with a lunch break, for Monday"):</label>
+                        <textarea id="aiScheduleInput" rows="4" 
+                                  class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg"
+                                  placeholder="E.g., 'For Tuesday, I need 3 periods of Math, English, Science starting at 10 AM, then an activity for gym.'"></textarea>
+                    </div>
+
+                    <button id="generateAiScheduleButton" onclick="generateAISchedule()" class="w-full mt-4 font-bold py-2 px-4 rounded-full text-lg btn-primary">
+                        Generate Schedule <span id="aiLoadingSpinner" class="spinner-ai hidden"></span>
+                    </button>
+
+                    <div id="aiScheduleOutput" class="mt-6 hidden">
+                        <h4 class="ai-output-title">AI Suggested Schedule:</h4>
+                        <div id="aiSuggestedPeriods" class="text-themed-secondary mb-2"></div>
+                        <div id="aiSuggestedActivities" class="text-themed-secondary"></div>
+                        
+                        <div class="mt-4">
+                            <label for="aiApplyDaySelector" class="block text-themed-secondary text-lg font-medium mb-2">Apply this suggestion to:</label>
+                            <select id="aiApplyDaySelector" class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                                <option value="Mon">Monday</option>
+                                <option value="Tue">Tuesday</option>
+                                <option value="Wed">Wednesday</option>
+                                <option value="Thu">Thursday</option>
+                                <option value="Fri">Friday</option>
+                                <option value="Sat">Saturday</option>
+                                <option value="Sun">Sunday</option>
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-4 mt-4">
+                            <button onclick="applyAISuggestion()" class="w-full sm:flex-1 font-bold py-2 px-4 rounded-full text-lg btn-primary">Apply to Selected Day</button>
+                            <button onclick="discardAISuggestion()" class="w-full sm:flex-1 font-bold py-2 px-4 rounded-full text-lg bg-gray-500 text-white hover:bg-gray-600 transition-colors duration-200 ease-in-out">Discard Suggestion</button>
+                        </div>
+                    </div>
+                    <p class="text-themed-muted text-sm mt-2"><i>Status: <span class="text-accent-primary">Implemented!</span></i></p>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Settings Page -->
+        <div id="settingsPage" class="page hidden">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-themed-primary mb-6">Settings</h2>
+
+            <div class="space-y-6 p-4 rounded-xl border border-gray-200 themed-card">
+                <!-- Theme Settings -->
+                <div>
+                    <label for="accentColor" class="block text-themed-secondary text-lg font-medium mb-2">Primary Accent Color:</label>
+                    <select id="accentColor"
+                            class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                        <option value="green">Green</option>
+                        <option value="blue">Blue</option>
+                        <option value="purple">Purple</option>
+                        <option value="orange">Orange</option>
+                        <option value="teal">Tean</option>
+                    </select>
+                </div>
+
+                <!-- Dark Mode Toggle -->
+                <label class="flex items-center text-themed-secondary cursor-pointer text-lg">
+                    <input type="checkbox" id="darkModeToggle" class="form-checkbox h-5 w-5 text-accent-primary rounded mr-2"> Enable Dark Mode
+                </label>
+
+                <!-- Brightness Control -->
+                <div>
+                    <label for="brightnessSlider" class="block text-themed-secondary text-lg font-medium mb-2">Brightness:</label>
+                    <input type="range" id="brightnessSlider" min="50" max="150" value="100"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                    <span id="brightnessValue" class="text-themed-muted text-sm mt-1 block text-right">100%</span>
+                </div>
+
+                <!-- Time Standard Setting -->
+                <div>
+                    <label for="timeStandardSelect" class="block text-themed-secondary text-lg font-medium mb-2">Time Display Standard:</label>
+                    <select id="timeStandardSelect"
+                            class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                        <option value="Local">Local Time (Browser/System)</option>
+                        <option value="UTC">Coordinated Universal Time (UTC)</option>
+                        <option value="America/New_York">America/New York</option>
+                        <option value="Europe/London">Europe/London</option>
+                        <option value="Asia/Kolkata">Asia/Kolkata</option>
+                        <option value="Australia/Sydney">Australia/Sydney</option>
+                    </select>
+                </div>
+
+                <!-- Automatic Time Sync Removed - No Longer Needed -->
+
+                <!-- Notification Sound Settings -->
+                <h3 class="text-xl sm:text-2xl font-semibold text-themed-primary mt-6 mb-4">Notification Sound:</h3>
+                
+                <!-- Sound Type Selection -->
+                <div>
+                    <label for="soundTypeSelect" class="block text-themed-secondary text-lg font-medium mb-2">Sound Type:</label>
+                    <select id="soundTypeSelect"
+                            class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                        <option value="simpleBeep">Simple Beep</option>
+                        <option value="ascendingChime">Ascending Chime</option>
+                        <option value="warningPulse">Warning Pulse</option>
+                        <option value="calmChime">Calm Chime</option>
+                        <option value="simpleAlarm">Simple Alarm</option>
+                        <option value="islamicCall">Islamic Call</option>
+                        <option value="custom">Custom Uploaded Sound</option> <!-- NEW -->
+                    </select>
+                </div>
+
+                <!-- Simple Beep Options (will be hidden/shown based on selection) -->
+                <div id="simpleBeepOptions" class="space-y-6">
+                    <div>
+                        <label for="beepWaveformSelect" class="block text-themed-secondary text-lg font-medium mb-2">Beep Waveform:</label>
+                        <select id="beepWaveformSelect"
+                                class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                            <option value="sine">Sine Wave (Smooth)</option>
+                            <option value="square">Square Wave (Buzzing)</option>
+                            <option value="sawtooth">Sawtooth Wave (Harsh)</option>
+                            <option value="triangle">Triangle Wave (Softer)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="beepDurationSlider" class="block text-themed-secondary text-lg font-medium mb-2">Beep Duration:</label>
+                        <input type="range" id="beepDurationSlider" min="0.1" max="2.0" step="0.1" value="0.5"
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                        <span id="beepDurationValue" class="text-themed-muted text-sm mt-1 block text-right">0.5 seconds</span>
+                    </div>
+
+                    <div>
+                        <label for="beepFrequencyInput" class="block text-themed-secondary text-lg font-medium mb-2">Beep Frequency (Hz):</label>
+                        <input type="number" id="beepFrequencyInput" min="200" max="2000" value="880"
+                               class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                        <span id="beepFrequencyValue" class="text-themed-muted text-sm mt-1 block text-right">880 Hz</span>
+                    </div>
+                </div>
+
+                <!-- Custom Sound Options (NEW) -->
+                <div id="customSoundOptions" class="space-y-4 hidden">
+                    <div>
+                        <label for="customSoundFileInput" class="block text-themed-secondary text-lg font-medium mb-2">Upload Custom Audio File:</label>
+                        <input type="file" id="customSoundFileInput" accept="audio/*"
+                               class="input-themed w-full text-lg file:mr-4 file:py-2 file:px-4
+                                      file:rounded-full file:border-0 file:text-sm file:font-semibold
+                                      file:bg-accent-color-500 file:text-white hover:file:bg-accent-color-600 cursor-pointer">
+                        <p id="customSoundStatus" class="text-themed-muted text-sm mt-1">No custom sound uploaded.</p>
+                    </div>
+                    <button onclick="clearCustomSound()" class="w-full font-bold py-2 px-4 rounded-full text-lg bg-red-500 text-white hover:bg-red-600 transition-colors duration-200 ease-in-out">Clear Custom Sound</button>
+                </div>
+
+
+                <label class="flex items-center text-themed-secondary cursor-pointer text-lg">
+                    <input type="checkbox" id="enableBeep" class="form-checkbox h-5 w-5 text-accent-primary rounded mr-2"> Enable Sound Notifications
+                </label>
+                <label class="flex items-center text-themed-secondary cursor-pointer text-lg">
+                    <input type="checkbox" id="enableSpeech" class="form-checkbox h-5 w-5 text-accent-primary rounded mr-2"> Enable Spoken Notifications
+                </label>
+                <div>
+                    <label for="beepVolumeSlider" class="block text-themed-secondary text-lg font-medium mb-2">Overall Sound Volume:</label>
+                    <input type="range" id="beepVolumeSlider" min="0" max="100" value="100"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                    <span id="beepVolumeValue" class="text-themed-muted text-sm mt-1 block text-right">100%</span>
+                </div>
+
+                <!-- Notification Duration Setting -->
+                <div>
+                    <label for="notificationDurationSlider" class="block text-themed-secondary text-lg font-medium mb-2">Notification Sequence Duration:</label>
+                    <input type="range" id="notificationDurationSlider" min="1" max="10" value="3"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                        <span id="notificationDurationValue" class="text-themed-muted text-sm mt-1 block text-right">3 minutes</span>
+                </div>
+
+                <!-- Pre-Notification Delay Setting -->
+                <div>
+                    <label for="preNotificationDelayInput" class="block text-themed-secondary text-lg font-medium mb-2">Notify Before (minutes):</label>
+                    <input type="number" id="preNotificationDelayInput" min="0" max="15" value="0"
+                           class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                    <span id="preNotificationDelayValue" class="text-themed-muted text-sm mt-1 block text-right">0 minutes</span>
+                </div>
+
+                <!-- Default Period Duration -->
+                <div>
+                    <label for="defaultPeriodDurationInput" class="block text-themed-secondary text-lg font-medium mb-2">Default Period Duration (minutes):</label>
+                    <input type="number" id="defaultPeriodDurationInput" min="10" max="120" value="45"
+                           class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                    <span id="defaultPeriodDurationValue" class="text-themed-muted text-sm mt-1 block text-right">45 minutes</span>
+                </div>
+
+                <!-- Default Break Duration Between Periods -->
+                <div>
+                    <label for="defaultBreakDurationInput" class="block text-themed-secondary text-lg font-medium mb-2">Default Break Duration Between Periods (minutes):</label>
+                    <input type="number" id="defaultBreakDurationInput" min="0" max="30" value="0"
+                           class="input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg">
+                    <span id="defaultBreakDurationValue" class="text-themed-muted text-sm mt-1 block text-right">0 minutes</span>
+                </div>
+
+
+                <button
+                    id="saveSettingsButton"
+                    onclick="saveGlobalSettings()"
+                    class="w-full mt-8 font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg sm:text-xl btn-primary"
+                >
+                    Save Settings
+                </button>
+            </div>
+        </div>
+
+
+        <!-- Status Message -->
+        <p id="statusMessage" class="mt-6 text-center text-lg text-gray-600 italic">
+            Configure your schedule above and click "Save Schedule".
+        </p>
+
+        <!-- Audio Activation Status Indicator -->
+        <p id="audioStatus" class="mt-4 text-center text-sm font-semibold text-red-500">
+            Click anywhere on the page to activate sound.
+        </p>
+    </div>
+
+    <script>
+        // --- Global Variable Declarations ---
+        const dashboardPage = document.getElementById('dashboardPage');
+        const schedulePage = document.getElementById('schedulePage'); // "New Schedule" / "Edit Day Schedule"
+        const schedulePageTitle = document.getElementById('schedulePageTitle'); // New for dynamic title
+        const savedSchedulesPage = document.getElementById('savedSchedulesPage');
+        const activitiesPage = document.getElementById('activitiesPage');
+        const calendarViewPage = document.getElementById('calendarViewPage'); // New Calendar View Page
+        const advancedFeaturesPage = document.getElementById('advancedFeaturesPage'); // New page
+        const settingsPage = document.getElementById('settingsPage');
+
+        // Hamburger Menu elements
+        const hamburgerIcon = document.getElementById('hamburgerIcon');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        const scheduleDaySelector = document.getElementById('scheduleDaySelector'); // New: Day selector for periods
+        const currentEditingDayDisplay = document.getElementById('currentEditingDay'); // New: Display for current editing day
+        const periodInputsContainer = document.getElementById('periodInputs');
+        const numPeriodsInput = document.getElementById('numPeriodsInput');
+        const numPeriodsValueDisplay = document.getElementById('numPeriodsValue');
+        
+        const activityDaySelector = document.getElementById('activityDaySelector'); // New: Day selector for activities
+        const currentEditingActivityDayDisplay = document.getElementById('currentEditingActivityDay'); // New: Display for current editing activity day
+        const activityInputsContainer = document.getElementById('activityInputs');
+
+        const timetableFileInput = document.getElementById('timetableFileInput');
+        const statusMessage = document.getElementById('statusMessage');
+        const audioStatusIndicator = document.getElementById('audioStatus');
+        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+        const nextEventDisplay = document.getElementById('nextEventDisplay');
+        const dailySchedulesContainer = document.getElementById('dailySchedulesContainer'); // Container for daily schedule cards
+
+        // Calendar View Elements
+        const currentMonthYearDisplay = document.getElementById('currentMonthYear');
+        // Corrected: Directly target the grid container
+        const calendarGrid = document.getElementById('calendarGrid');
+
+
+        const accentColorSelect = document.getElementById('accentColor');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const brightnessSlider = document.getElementById('brightnessSlider');
+        const brightnessValueDisplay = document.getElementById('brightnessValue');
+        const timeStandardSelect = document.getElementById('timeStandardSelect');
+
+        const soundTypeSelect = document.getElementById('soundTypeSelect');
+        const simpleBeepOptionsDiv = document.getElementById('simpleBeepOptions');
+        const customSoundOptionsDiv = document.getElementById('customSoundOptions'); // NEW
+        const customSoundFileInput = document.getElementById('customSoundFileInput'); // NEW
+        const customSoundStatus = document.getElementById('customSoundStatus'); // NEW
+        const beepWaveformSelect = document.getElementById('beepWaveformSelect');
+        const beepDurationSlider = document.getElementById('beepDurationSlider');
+        const beepDurationValueDisplay = document.getElementById('beepDurationValue');
+        const beepFrequencyInput = document.getElementById('beepFrequencyInput');
+        const beepFrequencyValueDisplay = document.getElementById('beepFrequencyValue');
+        const enableBeepCheckbox = document.getElementById('enableBeep');
+        const enableSpeechCheckbox = document.getElementById('enableSpeech');
+        const beepVolumeSlider = document.getElementById('beepVolumeSlider');
+        const beepVolumeValueDisplay = document.getElementById('beepVolumeValue');
+        const notificationDurationSlider = document.getElementById('notificationDurationSlider');
+        const notificationDurationValueDisplay = document.getElementById('notificationDurationValue');
+        const preNotificationDelayInput = document.getElementById('preNotificationDelayInput');
+        const preNotificationDelayValueDisplay = document.getElementById('preNotificationDelayValue');
+        const defaultPeriodDurationInput = document.getElementById('defaultPeriodDurationInput'); // New
+        const defaultPeriodDurationValueDisplay = document.getElementById('defaultPeriodDurationValue'); // New
+        const defaultBreakDurationInput = document.getElementById('defaultBreakDurationInput'); // New
+        const defaultBreakDurationValueDisplay = document.getElementById('defaultBreakDurationValue'); // New
+
+        // AI Schedule elements (NEW)
+        const aiScheduleInput = document.getElementById('aiScheduleInput');
+        const generateAiScheduleButton = document.getElementById('generateAiScheduleButton');
+        const aiLoadingSpinner = document.getElementById('aiLoadingSpinner');
+        const aiScheduleOutput = document.getElementById('aiScheduleOutput');
+        const aiSuggestedPeriods = document.getElementById('aiSuggestedPeriods');
+        const aiSuggestedActivities = document.getElementById('aiSuggestedActivities');
+        const aiApplyDaySelector = document.getElementById('aiApplyDaySelector');
+        let currentSuggestedSchedule = { periods: [], activities: [] }; // To hold the AI's parsed output
+
+
+        // Navigation buttons for sidebar
+        const navButtons = {
+            dashboard: document.getElementById('navDashboard'),
+            schedule: document.getElementById('navSchedule'),
+            savedSchedules: document.getElementById('navSavedSchedules'),
+            activities: document.getElementById('navActivities'),
+            calendarView: document.getElementById('navCalendarView'), // New
+            advancedFeatures: document.getElementById('navAdvancedFeatures'), // New
+            settings: document.getElementById('navSettings')
+        };
+
+        let schedule = {
+            customNumPeriods: 9, // This is now the max periods for a single day
+            dailyPeriods: {}, // Stores periods per day, e.g., {'Mon': [{time:'09:00', subject:'Math'}], 'Tue': [...]}
+            dailyActivities: {}, // Stores activities per day
+            selectedDayForPeriodsEdit: 'Mon', // The day currently selected for editing periods
+            selectedDayForActivitiesEdit: 'Mon', // The day currently selected for editing activities
+            accentColor: 'green',
+            darkMode: false,
+            brightness: 100,
+            timeStandard: 'Local',
+            autoTimeSync: false, // Removed option for this, fixed to false
+            soundType: 'simpleBeep',
+            beepWaveform: 'sine',
+            beepDurationSeconds: 0.5,
+            beepFrequency: 880,
+            enableBeep: true,
+            enableSpeech: true,
+            beepVolume: 100,
+            notificationDurationMinutes: 3,
+            preNotificationDelayMinutes: 0,
+            defaultPeriodDurationMinutes: 45, // New default
+            defaultBreakDurationMinutes: 0, // New default
+            customSoundBase64: null // NEW: For storing custom uploaded sound
+        };
+
+        let lastNotifiedEvent = {
+            day: null, //YYYY-MM-DD
+            id: null   // Unique ID like 'Mon-period-0' or 'Mon-break-end-after-period-0'
+        };
+
+        let currentBeepOscillator = null; // For programmatic sounds
+        let currentCustomSoundSource = null; // For custom uploaded sounds
+
+        let notificationIntervalId = null;
+        let notificationDurationTimeoutId = null;
+        let currentTimeIntervalId = null;
+
+        let audioCtx;
+        let audioContextInitialized = false;
+
+        const themeColors = {
+            green: { '500': '#10B981', '600': '#059669', '700': '#047857', 'rgb': '16, 185, 129' },
+            blue: { '500': '#3B82F6', '600': '#2563EB', '700': '#1D4ED8', 'rgb': '59, 130, 246' },
+            purple: { '500': '#8B5CF6', '600': '#7C3AED', '700': '#6D28D9', 'rgb': '139, 92, 246' },
+            orange: { '500': '#F97316', '600': '#EA580C', '700': '#C2410C', 'rgb': '249, 115, 22' },
+            teal: { '500': '#20C997', '600': '#009688', '700': '#00796B', 'rgb': '32, 201, 151' }
+        };
+
+        const daysOfWeekFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const daysOfWeekShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        let currentCalendarDate = new Date(); // To keep track of the month being viewed in calendar
+
+
+        // --- Function Definitions ---
+
+        /**
+         * Gets the current time, always using the local Date object now that server sync is removed.
+         * @returns {Date} The current Date object.
+         */
+        function getAdjustedCurrentTime() {
+            return new Date(); // Always use local time
+        }
+
+        /**
+         * Formats a Date object to a 12-hour string with AM/PM,
+         * optionally including seconds and applying a time zone.
+         * @param {Date} date - The Date object to format.
+         * @param {boolean} includeSeconds - Whether to include seconds in the output.
+         * @returns {string} The formatted time string.
+         */
+        function formatTime(date, includeSeconds = true) {
+            let options = { hour: '2-digit', minute: '2-digit', hour12: true };
+            if (includeSeconds) {
+                options.second = '2-digit';
+            }
+
+            // The `timeStandard` setting still controls how the *local* time is displayed
+            // (e.g., as UTC, or a specific IANA timezone relative to local).
+            if (schedule.timeStandard === 'Local') {
+                return date.toLocaleTimeString([], options);
+            } else if (schedule.timeStandard === 'UTC') {
+                options.timeZone = 'UTC';
+                return date.toLocaleTimeString('en-US', options) + ' UTC';
+            } else {
+                try {
+                    options.timeZone = schedule.timeStandard;
+                    const tzName = schedule.timeStandard.split('/').pop().replace(/_/g, ' ');
+                    return date.toLocaleTimeString('en-US', options) + ` (${tzName})`;
+                } catch (e) {
+                    console.error("Invalid time zone specified:", schedule.timeStandard, e);
+                    return date.toLocaleTimeString([], options) + ' (Invalid TZ)';
+                }
+            }
+        }
+
+        /**
+         * Updates the current time display on the dashboard (second by second).
+         */
+        function updateCurrentTimeDisplay() {
+            const now = getAdjustedCurrentTime();
+            currentTimeDisplay.textContent = formatTime(now, true);
+        }
+
+        /**
+         * Updates the next period/activity display on the dashboard (every minute).
+         * This function should be called by the main checkSchedule interval.
+         */
+        function updateNextEventDisplay() {
+            const now = getAdjustedCurrentTime();
+            const currentDayIndex = now.getDay();
+            const currentDayShort = daysOfWeekShort[currentDayIndex];
+
+            let nextEvent = null;
+            let minTimeDiff = Infinity;
+
+            const periodDurationMs = schedule.defaultPeriodDurationMinutes * 60 * 1000;
+            const breakDurationMs = schedule.defaultBreakDurationMinutes * 60 * 1000;
+
+            // Collect all potential events (periods, activities, break endings) for today
+            const allPossibleEvents = [];
+
+            // Periods
+            const periodsToday = schedule.dailyPeriods[currentDayShort] || [];
+            periodsToday.forEach((period, index) => {
+                if (period.time && period.time !== '00:00') {
+                    const [periodHour, periodMinute] = period.time.split(':').map(Number);
+                    const scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), periodHour, periodMinute, 0);
+                    allPossibleEvents.push({
+                        type: 'period',
+                        id: `${currentDayShort}-period-${index}`,
+                        scheduledDateTime: scheduledTime,
+                        displayData: { ...period, index: index + 1 }
+                    });
+
+                    // If breaks are enabled, add a potential break-end event after this period
+                    if (breakDurationMs > 0) {
+                        const periodEndTime = new Date(scheduledTime.getTime() + periodDurationMs);
+                        const breakEndTime = new Date(periodEndTime.getTime() + breakDurationMs);
+                        allPossibleEvents.push({
+                            type: 'break_end',
+                            id: `${currentDayShort}-break-end-after-period-${index}`,
+                            scheduledDateTime: breakEndTime,
+                            displayData: { nextPeriodIndex: index + 2, isLastPeriod: (index + 1) >= periodsToday.length }
+                        });
+                    }
+                }
+            });
+
+            // Activities
+            const activitiesToday = schedule.dailyActivities[currentDayShort] || [];
+            activitiesToday.forEach((activity, index) => {
+                if (activity.time && activity.time !== '00:00') {
+                    const [activityHour, activityMinute] = activity.time.split(':').map(Number);
+                    const scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), activityHour, activityMinute, 0);
+                    allPossibleEvents.push({
+                        type: 'activity',
+                        id: `${currentDayShort}-activity-${index}`,
+                        scheduledDateTime: scheduledTime,
+                        displayData: { ...activity, index: index + 1 }
+                    });
+                }
+            });
+
+            // Filter for future events and find the soonest one
+            allPossibleEvents.forEach(event => {
+                const targetTimeForDisplay = new Date(event.scheduledDateTime.getTime() - schedule.preNotificationDelayMinutes * 60 * 1000); // Display trigger time
+                if (targetTimeForDisplay.getTime() > now.getTime()) {
+                    const timeDiff = targetTimeForDisplay.getTime() - now.getTime();
+                    if (timeDiff < minTimeDiff) {
+                        minTimeDiff = timeDiff;
+                        nextEvent = event;
+                        nextEvent.displayTriggerTime = targetTimeForDisplay; // Add this for precise display
+                    }
+                }
+            });
+
+
+            if (nextEvent) {
+                const eventTimeFormatted = formatTime(nextEvent.scheduledDateTime, false); // Always show actual scheduled time
+                let eventText = '';
+                
+                if (nextEvent.type === 'period') {
+                    const subjectText = nextEvent.displayData.subject ? ` for ${nextEvent.displayData.subject}` : '';
+                    const classText = nextEvent.displayData.className ? ` (Class ${nextEvent.displayData.className})` : '';
+                    eventText = `Period ${nextEvent.displayData.index}${subjectText}${classText}`;
+                } else if (nextEvent.type === 'activity') {
+                    const detailsText = nextEvent.displayData.details ? ` (${nextEvent.displayData.details})` : '';
+                    eventText = `${nextEvent.displayData.name}${detailsText}`;
+                } else if (nextEvent.type === 'break_end') {
+                    if (nextEvent.displayData.isLastPeriod) {
+                        eventText = `Break ending (after last period)`;
+                    } else {
+                        eventText = `Break ending (before Period ${nextEvent.displayData.nextPeriodIndex})`;
+                    }
+                }
+                
+                let triggerInfo = '';
+                if (schedule.preNotificationDelayMinutes > 0) {
+                    triggerInfo = ` (notifies at ${formatTime(nextEvent.displayTriggerTime, false)})`;
+                }
+
+                nextEventDisplay.textContent = `Next: ${eventText} at ${eventTimeFormatted}${triggerInfo}`;
+            } else {
+                nextEventDisplay.textContent = 'No upcoming events today.';
+            }
+        }
+
+        /**
+         * Updates the current time and next period/activity on the dashboard.
+         */
+        function updateDashboard() {
+            updateCurrentTimeDisplay();
+            updateNextEventDisplay();
+        }
+
+        /**
+         * Switches between different pages/views.
+         * @param {string} pageId - The ID of the page to show.
+         */
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.add('hidden');
+            });
+            // Show the requested page
+            document.getElementById(pageId).classList.remove('hidden');
+
+            // Update active navigation button in sidebar
+            document.querySelectorAll('.sidebar-nav-item').forEach(btn => btn.classList.remove('active'));
+            const activeButton = Object.values(navButtons).find(btn => btn.id === `nav${pageId.replace('Page', '')}`);
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+
+            // Close sidebar after navigation
+            closeSidebar();
+
+            // Manage second-by-second current time update based on dashboard visibility
+            if (pageId === 'dashboardPage') {
+                updateDashboard(); // Ensure dashboard is updated immediately upon showing
+                if (currentTimeIntervalId) {
+                    clearInterval(currentTimeIntervalId);
+                }
+                currentTimeIntervalId = setInterval(updateCurrentTimeDisplay, 1000); // Update every second
+            } else {
+                if (currentTimeIntervalId) {
+                    clearInterval(currentTimeIntervalId);
+                    currentTimeIntervalId = null;
+                }
+            }
+
+            // Specific logic for new pages
+            if (pageId === 'schedulePage') { // This is the "New Schedule" / "Edit Day Schedule" page
+                schedulePageTitle.textContent = "Set New Class Schedule"; // Default title
+                // Ensure the selector shows the current editing day
+                scheduleDaySelector.value = schedule.selectedDayForPeriodsEdit;
+                currentEditingDayDisplay.textContent = daysOfWeekFull[daysOfWeekShort.indexOf(schedule.selectedDayForPeriodsEdit)];
+                generatePeriodInputs(); // Generate inputs for the selected day
+                populatePeriodInputsFromSchedule(); // Populate with existing data for the selected day
+            } else if (pageId === 'savedSchedulesPage') {
+                renderSavedSchedules(); // Render the saved schedules when this page is shown
+            } else if (pageId === 'activitiesPage') {
+                // Ensure the selector shows the current editing day for activities
+                activityDaySelector.value = schedule.selectedDayForActivitiesEdit;
+                currentEditingActivityDayDisplay.textContent = daysOfWeekFull[daysOfWeekShort.indexOf(schedule.selectedDayForActivitiesEdit)];
+                generateActivityInputs(); // Regenerate activity inputs for the selected day
+            } else if (pageId === 'calendarViewPage') { // Render calendar when navigated to
+                renderCalendar();
+            }
+        }
+
+        /**
+         * Initializes and attempts to resume the AudioContext.
+         * This function should be called on a user gesture to bypass autoplay policies.
+         * Plays a very short sound to confirm audio is active.
+         */
+        async function activateAudioOnUserGesture() {
+            if (audioContextInitialized) {
+                console.log('AudioContext already initialized. No need to activate again.');
+                return;
+            }
+
+            try {
+                if (window.AudioContext || window.webkitAudioContext) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    audioContextInitialized = true;
+                    console.log('AudioContext created.');
+
+                    if (audioCtx.state === 'suspended') {
+                        console.log('AudioContext is suspended. Attempting to resume...');
+                        await audioCtx.resume();
+                        console.log('AudioContext resumed successfully!');
+                    } else {
+                        console.log('AudioContext is already running.');
+                    }
+
+                    // Play a very brief, low-frequency sound to confirm audio context is active
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(200, audioCtx.currentTime); // Low frequency beep
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Low volume
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.05); // Very short duration (50ms)
+                    console.log("Audio activation test sound played.");
+                    
+                    audioStatusIndicator.textContent = 'Sound Activated! Notifications will now play.';
+                    audioStatusIndicator.classList.remove('text-red-500');
+                    audioStatusIndicator.classList.add('text-green-600');
+
+                } else {
+                    console.warn("AudioContext not supported in this browser. Sound notifications will not work.");
+                    audioStatusIndicator.textContent = 'Audio not supported in this browser.';
+                    audioStatusIndicator.classList.add('text-red-500');
+                }
+            }
+            catch (error) {
+                console.error('Error during AudioContext activation:', error);
+                audioContextInitialized = false; // Mark as not initialized on error
+                audioStatusIndicator.textContent = 'Error activating sound. Check browser console.';
+                audioStatusIndicator.classList.add('text-red-500');
+            }
+        }
+
+        /**
+         * Plays a simple beep sound using oscillator properties from settings.
+         * @param {string} waveform - The waveform type (sine, square, sawtooth, triangle).
+         * @param {number} frequency - The frequency in Hz.
+         * @param {number} duration - The duration in seconds.
+         * @param {number} volume - The volume (0-100).
+         */
+        function _playSimpleBeep(waveform, frequency, duration, volume) {
+            if (!audioCtx || audioCtx.state !== 'running') {
+                console.warn("AudioContext is not active or running. Cannot play simple beep.");
+                return;
+            }
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.type = waveform;
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(volume / 100, audioCtx.currentTime);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + duration);
+            currentBeepOscillator = oscillator; // Store for stopping
+        }
+
+        /**
+         * Plays an ascending chime sound.
+         * Uses fixed frequencies and durations, but respects global volume.
+         * @param {number} volume - The volume (0-100).
+         */
+        function _playAscendingChime(volume) {
+            if (!audioCtx || audioCtx.state !== 'running') {
+                console.warn("AudioContext is not active or running. Cannot play ascending chime.");
+                return;
+            }
+
+            const now = audioCtx.currentTime;
+            const baseVolume = volume / 100;
+            const noteDuration = 0.15; // seconds
+            const pauseDuration = 0.05; // seconds
+
+            // Note 1
+            const osc1 = audioCtx.createOscillator();
+            const gain1 = audioCtx.createGain();
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(523.25, now); // C5
+            gain1.gain.setValueAtTime(baseVolume, now);
+            osc1.start(now);
+            osc1.stop(now + noteDuration);
+
+            // Note 2 (slightly higher, after a short pause)
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(659.25, now + noteDuration + pauseDuration); // E5
+            gain2.gain.setValueAtTime(baseVolume, now + noteDuration + pauseDuration);
+            osc2.start(now + noteDuration + pauseDuration);
+            osc2.stop(now + noteDuration + pauseDuration + noteDuration);
+
+            // Store the last oscillator, or if multiple, manage them
+            currentBeepOscillator = osc2; // For simplicity, store the last one
+        }
+
+        /**
+         * Plays a warning pulse sound (low tone, on-off pulsing).
+         * Uses fixed frequencies and durations, but respects global volume.
+         * @param {number} volume - The volume (0-100).
+         */
+        function _playWarningPulse(volume) {
+            if (!audioCtx || audioCtx.state !== 'running') {
+                console.warn("AudioContext is not active or running. Cannot play warning pulse.");
+                return;
+            }
+
+            const now = audioCtx.currentTime;
+            const baseVolume = volume / 100;
+            const pulseDuration = 0.3; // seconds for on/off cycle
+            const numPulses = 3;
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.type = 'sawtooth'; // A harsher tone
+            oscillator.frequency.setValueAtTime(220, now); // A3 (low tone)
+
+            // Apply pulsing volume effect
+            gainNode.gain.setValueAtTime(0, now); // Start muted
+            for (let i = 0; i < numPulses; i++) {
+                const startTime = now + i * pulseDuration * 2; // On + Off cycle
+                gainNode.gain.linearRampToValueAtTime(baseVolume, startTime + 0.05); // Fade in quickly
+                gainNode.gain.linearRampToValueAtTime(0, startTime + pulseDuration); // Fade out
+            }
+            // Ensure it stops after all pulses
+            oscillator.start(now);
+            oscillator.stop(now + numPulses * pulseDuration * 2);
+            currentBeepOscillator = oscillator;
+        }
+
+        /**
+         * Plays a calm, meditation-like chime.
+         * Features longer, resonating tones.
+         * @param {number} volume - The volume (0-100).
+         */
+        function _playCalmChime(volume) {
+            if (!audioCtx || audioCtx.state !== 'running') {
+                console.warn("AudioContext is not active or running. Cannot play calm chime.");
+                return;
+            }
+
+            const now = audioCtx.currentTime;
+            const baseVolume = volume / 100;
+            const noteDuration = 1.0; // seconds
+            const fadeOutTime = 0.8; // seconds for fade out
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, now); // A4
+            gain.gain.setValueAtTime(baseVolume, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + noteDuration + fadeOutTime); // Fade out smoothly
+
+            osc.start(now);
+            osc.stop(now + noteDuration + fadeOutTime + 0.1); // Ensure it stops after fade out
+            currentBeepOscillator = osc;
+        }
+
+        /**
+         * Plays a simple, repeating alarm sound.
+         * Short, distinct, and attention-grabbing.
+         * @param {number} volume - The volume (0-100).
+         */
+        function _playSimpleAlarm(volume) {
+            if (!audioCtx || audioCtx.state !== 'running') {
+                console.warn("AudioContext is not active or running. Cannot play simple alarm.");
+                return;
+            }
+
+            const now = audioCtx.currentTime;
+            const baseVolume = volume / 100;
+            const shortBeepDuration = 0.1; // seconds
+            const gapDuration = 0.1; // seconds
+            const numBeeps = 5;
+
+            // This one creates multiple oscillators, so `currentBeepOscillator` might just hold the last one.
+            // For a robust stop, we would need to track all created oscillators in an array.
+            // For now, it's sufficient for basic stopping behavior.
+            let lastOscillator = null; 
+            for (let i = 0; i < numBeeps; i++) {
+                const startTime = now + i * (shortBeepDuration + gapDuration);
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.type = 'square'; // Sharper tone
+                oscillator.frequency.setValueAtTime(700, startTime); // High pitch
+                gainNode.gain.setValueAtTime(baseVolume, startTime);
+
+                oscillator.start(startTime);
+                oscillator.stop(startTime + shortBeepDuration);
+                lastOscillator = oscillator;
+            }
+            currentBeepOscillator = lastOscillator;
+        }
+
+        /**
+         * Plays a programmatic sound evoking an Islamic call (simple tonal pattern).
+         * @param {number} volume - The volume (0-100).
+         */
+        function _playIslamicCall(volume) {
+            if (!audioCtx || audioCtx.state !== 'running') {
+                console.warn("AudioContext is not active or running. Cannot play Islamic Call sound.");
+                return;
+            }
+
+            const now = audioCtx.currentTime;
+            const baseVolume = volume / 100;
+            const mainFrequency = 440; // A4
+            const fifthFrequency = mainFrequency * 1.5; // E5 (perfect fifth)
+            const secondFrequency = mainFrequency * 1.122; // B4 (major second)
+            const duration = 0.8; // seconds per phrase
+            const pause = 0.1; // seconds between phrases
+
+            // Phrase 1: Main tone
+            let osc1 = audioCtx.createOscillator();
+            let gain1 = audioCtx.createGain();
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(mainFrequency, now);
+            gain1.gain.setValueAtTime(baseVolume, now);
+            gain1.gain.linearRampToValueAtTime(0.0001, now + duration);
+            osc1.start(now);
+            osc1.stop(now + duration + 0.1);
+
+            // Phrase 2: Ascending/Descending
+            let osc2 = audioCtx.createOscillator();
+            let gain2 = audioCtx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(fifthFrequency, now + duration + pause);
+            osc2.frequency.linearRampToValueAtTime(secondFrequency, now + duration + pause + duration / 2);
+            osc2.frequency.linearRampToValueAtTime(mainFrequency, now + duration + pause + duration);
+            gain2.gain.setValueAtTime(baseVolume, now + duration + pause);
+            gain2.gain.linearRampToValueAtTime(0.0001, now + duration + pause + duration);
+            osc2.start(now + duration + pause);
+            osc2.stop(now + duration + pause + duration + 0.1);
+            currentBeepOscillator = osc2;
+        }
+
+        /**
+         * Plays a custom uploaded sound from a Base64 string.
+         * @param {string} base64String - The Base64 encoded audio data.
+         * @param {number} volume - The volume (0-100).
+         */
+        async function _playCustomSound(base64String, volume) {
+            if (!audioCtx || audioCtx.state !== 'running') {
+                console.warn("AudioContext is not active or running. Cannot play custom sound.");
+                return;
+            }
+            if (!base64String) {
+                console.warn("No custom sound data available.");
+                return;
+            }
+
+            try {
+                // Remove the data URI prefix if present
+                const byteString = atob(base64String.split(',')[1] || base64String);
+                const ab = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(ab);
+                for (let i = 0; i < byteString.length; i++) {
+                    ia[i] = byteString.charCodeAt(i);
+                }
+
+                const audioBuffer = await audioCtx.decodeAudioData(ab);
+                const source = audioCtx.createBufferSource();
+                const gainNode = audioCtx.createGain();
+
+                source.buffer = audioBuffer;
+                source.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                gainNode.gain.setValueAtTime(volume / 100, audioCtx.currentTime); // Apply volume
+                source.start(0);
+
+                currentCustomSoundSource = source; // Store for stopping
+                console.log("Custom sound played.");
+
+            } catch (e) {
+                console.error("Error playing custom sound:", e);
+                showMessageBox("Audio Playback Error", "Could not play custom audio. It might be corrupted or in an unsupported format.", [{ text: 'OK', className: 'primary' }]);
+            }
+        }
+
+
+        /**
+         * Plays the selected notification sound based on settings.
+         * @param {string} currentSoundType - The sound type currently selected in settings.
+         * @param {string} currentWaveform - The waveform for simple beep.
+         * @param {number} currentFrequency - The frequency in Hz.
+         * @param {number} currentDuration - The duration in seconds.
+         * @param {number} currentVolume - The overall volume.
+         */
+        function playNotificationSound(currentSoundType, currentWaveform, currentFrequency, currentDuration, currentVolume) {
+            if (!schedule.enableBeep) { // 'enableBeep' now acts as a master toggle for all custom sounds
+                console.log("Sound notifications disabled in settings.");
+                return;
+            }
+            if (!audioCtx || audioCtx.state !== 'running') {
+                console.warn("AudioContext is not active or running. Cannot play notification sound.");
+                return;
+            }
+
+            // Stop any previous sound source
+            if (currentBeepOscillator) {
+                try {
+                    currentBeepOscillator.stop();
+                    currentBeepOscillator.disconnect();
+                } catch (e) {
+                    console.warn("Error stopping previous programmatic sound:", e);
+                }
+                currentBeepOscillator = null;
+            }
+            if (currentCustomSoundSource) {
+                try {
+                    currentCustomSoundSource.stop();
+                    currentCustomSoundSource.disconnect();
+                } catch (e) {
+                    console.warn("Error stopping previous custom sound:", e);
+                }
+                currentCustomSoundSource = null;
+            }
+
+
+            switch (currentSoundType) {
+                case 'simpleBeep':
+                    _playSimpleBeep(currentWaveform, currentFrequency, currentDuration, currentVolume);
+                    break;
+                case 'ascendingChime':
+                    _playAscendingChime(currentVolume);
+                    break;
+                case 'warningPulse':
+                    _playWarningPulse(currentVolume);
+                    break;
+                case 'calmChime':
+                    _playCalmChime(currentVolume);
+                    break;
+                case 'simpleAlarm':
+                    _playSimpleAlarm(currentVolume);
+                    break;
+                case 'islamicCall':
+                    _playIslamicCall(currentVolume);
+                    break;
+                case 'custom': // NEW: Handle custom sound
+                    if (schedule.customSoundBase64) {
+                        _playCustomSound(schedule.customSoundBase64, currentVolume);
+                    } else {
+                        console.warn("Custom sound type selected but no custom sound data found. Falling back to default beep.");
+                        _playSimpleBeep('sine', 880, 0.5, currentVolume); // Fallback
+                    }
+                    break;
+                default:
+                    console.warn("Unknown sound type:", currentSoundType);
+                    _playSimpleBeep('sine', 880, 0.5, currentVolume); // Fallback to default beep
+            }
+        }
+
+        /**
+         * Triggers Text-to-Speech for a given message.
+         * Returns a Promise that resolves when speech ends.
+         * @param {string} message - The message to speak.
+         * @returns {Promise<void>} A promise that resolves when the speech finishes.
+         */
+        function speakMessage(message) {
+            return new Promise((resolve, reject) => {
+                if (!schedule.enableSpeech) {
+                    console.log("Spoken notification disabled in settings.");
+                    resolve(); // Resolve immediately if speech is disabled
+                    return;
+                }
+                if ('speechSynthesis' in window) {
+                    speechSynthesis.cancel(); // Always cancel any pending speech
+                    const utterance = new SpeechSynthesisUtterance(message);
+                    utterance.volume = 1.0; // Max volume for speech
+                    utterance.rate = 0.9;  // Slightly slower for clarity
+
+                    utterance.onend = () => {
+                        console.log('Speech finished. Resolving promise.');
+                        resolve();
+                    };
+                    utterance.onerror = (event) => {
+                        console.error('Speech synthesis error:', event.error);
+                        // If there's an error, still resolve to prevent blocking the notification loop
+                        resolve();
+                    };
+
+                    speechSynthesis.speak(utterance);
+                    console.log("Speaking message:", message);
+                } else {
+                    console.warn("Text-to-Speech not supported. Resolving immediately.");
+                    resolve(); // Resolve immediately if not supported
+                }
+            });
+        }
+
+        /**
+         * Sends a desktop notification if permission is granted.
+         * @param {string} title - The title of the notification.
+         * @param {string} body - The body text of the notification.
+         * @param {string} icon - The URL of the icon to display.
+         */
+        function sendDesktopNotification(title, body, icon) {
+            if (Notification.permission === 'granted') {
+                new Notification(title, { body, icon });
+                console.log("Desktop notification sent:", title, body);
+            } else {
+                console.log("Desktop notification permission not granted or denied.");
+            }
+        }
+
+        /**
+         * Requests permission for desktop notifications.
+         */
+        function requestDesktopNotificationPermission() {
+            if (!("Notification" in window)) {
+                showMessageBox("Browser Not Supported", "This browser does not support desktop notifications.", [{ text: 'OK', className: 'primary' }]);
+            } else if (Notification.permission === "granted") {
+                showMessageBox("Permission Already Granted", "You have already granted permission for desktop notifications.", [{ text: 'OK', className: 'primary' }]);
+            } else if (Notification.permission === "denied") {
+                showMessageBox("Permission Denied", "You have previously denied desktop notification permission. Please change your browser settings to enable them.", [{ text: 'OK', className: 'primary' }]);
+            } else {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        showMessageBox("Permission Granted!", "Desktop notifications are now enabled.", [{ text: 'OK', className: 'primary' }]);
+                    } else {
+                        showMessageBox("Permission Denied", "Desktop notification permission was denied.", [{ text: 'OK', className: 'primary' }]);
+                    }
+                });
+            }
+        }
+
+        /**
+         * Stops any active sound notification (sound and speech), and clears all related intervals/timeouts.
+         */
+        function stopNotification() {
+            console.log("Stopping notification...");
+            // Stop current programmatic sound
+            if (currentBeepOscillator) {
+                try {
+                    currentBeepOscillator.stop();
+                    currentBeepOscillator.disconnect();
+                } catch (e) {
+                    console.warn("Error stopping programmatic sound source during full stop:", e);
+                }
+                currentBeepOscillator = null;
+                console.log("Programmatic sound stopped.");
+            }
+            // Stop current custom sound
+            if (currentCustomSoundSource) {
+                try {
+                    currentCustomSoundSource.stop();
+                    currentCustomSoundSource.disconnect();
+                } catch (e) {
+                    console.warn("Error stopping custom sound source during full stop:", e);
+                }
+                currentCustomSoundSource = null;
+                console.log("Custom sound stopped.");
+            }
+
+            // Stop speech
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                console.log("Speech stopped.");
+            }
+
+            // Clear the repeating interval
+            if (notificationIntervalId) {
+                clearInterval(notificationIntervalId);
+                notificationIntervalId = null;
+                console.log("Notification repeat interval cleared.");
+            }
+
+            // Clear the overall notification duration timeout
+            if (notificationDurationTimeoutId) {
+                clearTimeout(notificationDurationTimeoutId);
+                notificationDurationTimeoutId = null;
+                console.log("Total notification duration timeout cleared.");
+            }
+            console.log("Notification fully stopped.");
+        }
+
+        /**
+         * Starts the concurrent sound and speech notification, repeating every 10 seconds.
+         * @param {string} notificationMessage - The message to speak.
+         */
+        function startNotificationSequence(notificationMessage) {
+            // Stop any existing notification sequence first
+            stopNotification();
+            console.log("Starting new concurrent notification sequence for:", notificationMessage);
+
+            // Set an overall timeout to stop notification based on user setting
+            notificationDurationTimeoutId = setTimeout(() => {
+                console.log(`Notification duration (${schedule.notificationDurationMinutes} minutes) timeout reached. Stopping notification.`);
+                stopNotification();
+            }, schedule.notificationDurationMinutes * 60 * 1000); // Convert minutes to milliseconds
+
+            // Define a function to perform one cycle of sound AND speech
+            const performConcurrentCycle = async () => {
+                // Ensure audio context is active before starting a cycle
+                if (!audioCtx || audioCtx.state !== 'running') {
+                    console.warn("Audio context not active for cycle. Attempting to activate. If unsuccessful, notification stops.");
+                    try {
+                        await activateAudioOnUserGesture(); // Try to reactivate
+                        if (!audioCtx || audioCtx.state !== 'running') {
+                            stopNotification(); // If still not running, give up
+                            return;
+                        }
+                    } catch (error) {
+                        console.error("Failed to reactivate audio context, stopping notification.", error);
+                        stopNotification();
+                        return;
+                    }
+                }
+
+                console.log("Cycle: Playing sound AND Speaking simultaneously...");
+                // Pass current UI values for testing purposes if not yet saved to schedule
+                const currentSoundType = soundTypeSelect.value;
+                const currentWaveform = beepWaveformSelect.value;
+                const currentFrequency = parseInt(beepFrequencyInput.value);
+                const currentDuration = parseFloat(beepDurationSlider.value);
+                const currentVolume = parseInt(beepVolumeSlider.value);
+
+                playNotificationSound(currentSoundType, currentWaveform, currentFrequency, currentDuration, currentVolume);
+                await speakMessage(notificationMessage); // Wait for speech to finish before the interval can trigger again
+                
+                // Also send desktop notification
+                sendDesktopNotification('Class Period Notifier', notificationMessage, 'https://placehold.co/128x128/10B981/ffffff?text=CPN');
+
+                console.log("Cycle finished. Scheduling next concurrent cycle in 10 seconds.");
+            };
+
+            // Start the first cycle immediately
+            performConcurrentCycle();
+
+            // Set an interval for subsequent cycles
+            // The interval is set to 10 seconds to ensure the sound and average speech duration can complete.
+            notificationIntervalId = setInterval(performConcurrentCycle, 10 * 1000); // Repeat cycle every 10 seconds
+        }
+
+        /**
+         * Displays a custom message box instead of alert/confirm.
+         * @param {string} title - The title of the message box.
+         * @param {string} message - The content message.
+         * @param {Array} buttons - An array of button objects: [{ text: 'OK', className: 'primary', onPress: () => {} }]
+         */
+        function showMessageBox(title, message, buttons) {
+            // Remove any existing message box to prevent duplicates
+            const existingMessageBox = document.querySelector('.message-box-container');
+            if (existingMessageBox) {
+                existingMessageBox.remove();
+            }
+
+            const container = document.createElement('div');
+            container.className = 'message-box-container';
+
+            const messageBox = document.createElement('div');
+            messageBox.className = 'message-box themed-card'; // Apply themed card styling
+
+            const titleElement = document.createElement('h2');
+            titleElement.className = 'message-box-title text-themed-primary';
+            titleElement.textContent = title;
+
+            const contentElement = document.createElement('p');
+            contentElement.className = 'message-box-content text-themed-secondary';
+            contentElement.innerHTML = message; // Use innerHTML to allow for formatted content
+
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.className = 'message-box-buttons';
+
+            buttons.forEach(buttonInfo => {
+                const button = document.createElement('button');
+                button.className = `message-box-button ${buttonInfo.className}`;
+                button.textContent = buttonInfo.text;
+                button.onclick = () => {
+                    if (buttonInfo.onPress) {
+                        buttonInfo.onPress();
+                    }
+                    container.remove(); // Close the message box
+                };
+                buttonsContainer.appendChild(button);
+            });
+
+            messageBox.appendChild(titleElement);
+            messageBox.appendChild(contentElement);
+            messageBox.appendChild(buttonsContainer);
+            container.appendChild(messageBox);
+            document.body.appendChild(container);
+        }
+
+        /**
+         * Generates the period time, subject, and class input fields dynamically for the selected day.
+         */
+        function generatePeriodInputs() {
+            periodInputsContainer.innerHTML = ''; // Clear existing inputs
+            const currentDay = schedule.selectedDayForPeriodsEdit;
+            // Get periods for the current day, or an empty array if none exist
+            const periodsForDay = schedule.dailyPeriods[currentDay] || [];
+
+            for (let i = 0; i < schedule.customNumPeriods; i++) { // Use customNumPeriods as the max allowed for a day
+                const div = document.createElement('div');
+                div.className = 'flex flex-col gap-2 border border-gray-200 p-3 rounded-lg shadow-sm themed-card';
+
+                const label = document.createElement('label');
+                label.setAttribute('for', `period-time-${i + 1}`);
+                label.className = 'text-themed-secondary text-lg font-medium whitespace-nowrap';
+                label.textContent = `Period ${i + 1}:`;
+
+                const timeInput = document.createElement('input');
+                timeInput.type = 'time';
+                timeInput.id = `period-time-${i + 1}`;
+                timeInput.className = 'input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg';
+                timeInput.value = periodsForDay[i] ? periodsForDay[i].time : '00:00'; // Populate if data exists
+
+                const subjectInput = document.createElement('input');
+                subjectInput.type = 'text';
+                subjectInput.id = `period-subject-${i + 1}`;
+                subjectInput.placeholder = 'Subject Name (e.g., Math, Physics)';
+                subjectInput.className = 'input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg';
+                subjectInput.value = periodsForDay[i] ? periodsForDay[i].subject : '';
+
+                const classInput = document.createElement('input');
+                classInput.type = 'text';
+                classInput.id = `period-class-${i + 1}`;
+                classInput.placeholder = 'Class (e.g., 10A, FYBSc)';
+                classInput.className = 'input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg';
+                classInput.value = periodsForDay[i] ? periodsForDay[i].className : '';
+
+                div.appendChild(label);
+                div.appendChild(timeInput);
+                div.appendChild(subjectInput);
+                div.appendChild(classInput);
+                periodInputsContainer.appendChild(div);
+            }
+        }
+
+        /**
+         * Populates the period input fields with data from the schedule object for the currently selected day.
+         * This function should be called after `generatePeriodInputs` to fill the created fields.
+         */
+        function populatePeriodInputsFromSchedule() {
+            const currentDay = schedule.selectedDayForPeriodsEdit;
+            const periodsForDay = schedule.dailyPeriods[currentDay] || [];
+
+            for (let i = 0; i < schedule.customNumPeriods; i++) {
+                const timeInput = document.getElementById(`period-time-${i + 1}`);
+                const subjectInput = document.getElementById(`period-subject-${i + 1}`);
+                const classInput = document.getElementById(`period-class-${i + 1}`);
+
+                if (timeInput) {
+                    timeInput.value = periodsForDay[i] ? periodsForDay[i].time : '00:00';
+                }
+                if (subjectInput) {
+                    subjectInput.value = periodsForDay[i] ? periodsForDay[i].subject : '';
+                }
+                if (classInput) {
+                    classInput.value = periodsForDay[i] ? periodsForDay[i].className : '';
+                }
+            }
+        }
+
+
+        /**
+         * Generates and manages the activity input fields dynamically for the selected day.
+         */
+        function generateActivityInputs() {
+            activityInputsContainer.innerHTML = ''; // Clear existing inputs
+            const currentDay = schedule.selectedDayForActivitiesEdit;
+            const activitiesForDay = schedule.dailyActivities[currentDay] || [];
+
+            activitiesForDay.forEach((activity, index) => {
+                const div = document.createElement('div');
+                div.className = 'flex flex-col gap-2 border border-gray-200 p-3 rounded-lg shadow-sm themed-card relative';
+
+                // Delete button
+                const deleteButton = document.createElement('button');
+                deleteButton.innerHTML = '&times;'; // Multiplication symbol for 'X'
+                deleteButton.className = 'absolute top-2 right-2 text-xl font-bold text-red-500 hover:text-red-700 focus:outline-none';
+                deleteButton.onclick = () => {
+                    // Remove activity from the specific day's array
+                    schedule.dailyActivities[currentDay].splice(index, 1);
+                    saveActivities(); // Save updated activities (this saves the whole schedule)
+                    generateActivityInputs(); // Re-render inputs for the current day
+                };
+
+                const label = document.createElement('label');
+                label.className = 'text-themed-secondary text-lg font-medium whitespace-nowrap';
+                label.textContent = `Activity ${index + 1}:`;
+
+                const timeInput = document.createElement('input');
+                timeInput.type = 'time';
+                timeInput.className = 'input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg';
+                timeInput.value = activity.time;
+                // Update specific activity object in the array when input changes
+                timeInput.onchange = (e) => activity.time = e.target.value;
+
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.placeholder = 'Activity Name (e.g., Meeting, Workout)';
+                nameInput.className = 'input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg';
+                nameInput.value = activity.name;
+                nameInput.onchange = (e) => activity.name = e.target.value;
+
+                const detailsInput = document.createElement('input');
+                detailsInput.type = 'text';
+                detailsInput.placeholder = 'Details (e.g., with Team A, 30 min cardio)';
+                detailsInput.className = 'input-themed w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary text-lg';
+                detailsInput.value = activity.details;
+                detailsInput.onchange = (e) => activity.details = e.target.value;
+
+                div.appendChild(deleteButton);
+                div.appendChild(label);
+                div.appendChild(timeInput);
+                div.appendChild(nameInput);
+                div.appendChild(detailsInput);
+                activityInputsContainer.appendChild(div);
+            });
+        }
+
+        /** Adds a new empty activity input field for the selected day. */
+        function addActivityInput() {
+            const currentDay = schedule.selectedDayForActivitiesEdit;
+            if (!schedule.dailyActivities[currentDay]) {
+                schedule.dailyActivities[currentDay] = [];
+            }
+            schedule.dailyActivities[currentDay].push({ time: '00:00', name: '', details: '' });
+            generateActivityInputs(); // Regenerate inputs to show the new one
+            saveActivities(); // Save immediately after adding (this saves the whole schedule)
+        }
+
+
+        /**
+         * Applies the current settings to the UI.
+         */
+        function applySettings() {
+            // Apply accent color
+            const colors = themeColors[schedule.accentColor];
+            if (colors) {
+                document.documentElement.style.setProperty('--accent-color-500', colors['500']);
+                document.documentElement.style.setProperty('--accent-color-600', colors['600']);
+                document.documentElement.style.setProperty('--accent-color-700', colors['700']);
+                document.documentElement.style.setProperty('--accent-color-500-rgb', colors['rgb']); // For focus rings
+            }
+            accentColorSelect.value = schedule.accentColor; // Set dropdown
+
+            // Apply dark mode
+            if (schedule.darkMode) {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+            darkModeToggle.checked = schedule.darkMode;
+
+            // Apply brightness
+            document.body.style.filter = `brightness(${brightnessSlider.value}%)`; // Use live value
+            brightnessValueDisplay.textContent = `${brightnessSlider.value}%`;
+
+            // Apply time standard dropdown value
+            timeStandardSelect.value = schedule.timeStandard;
+
+            // Apply sound type and show/hide options
+            soundTypeSelect.value = schedule.soundType;
+            if (schedule.soundType === 'simpleBeep') {
+                simpleBeepOptionsDiv.classList.remove('hidden');
+                customSoundOptionsDiv.classList.add('hidden');
+            } else if (schedule.soundType === 'custom') {
+                simpleBeepOptionsDiv.classList.add('hidden');
+                customSoundOptionsDiv.classList.remove('hidden');
+                // Update custom sound status display
+                customSoundStatus.textContent = schedule.customSoundBase64 ? 'Custom sound uploaded.' : 'No custom sound uploaded.';
+            } else {
+                simpleBeepOptionsDiv.classList.add('hidden');
+                customSoundOptionsDiv.classList.add('hidden');
+            }
+
+            // Apply beep waveform
+            beepWaveformSelect.value = schedule.beepWaveform;
+
+            // Apply beep duration
+            beepDurationSlider.value = schedule.beepDurationSeconds; // Use saved value
+            beepDurationValueDisplay.textContent = `${parseFloat(beepDurationSlider.value).toFixed(1)} seconds`; // Update display with current slider value on input
+
+            // Apply beep frequency
+            beepFrequencyInput.value = schedule.beepFrequency; // Use saved value
+            beepFrequencyValueDisplay.textContent = `${parseInt(beepFrequencyInput.value)} Hz`; // Update display with current input value on input
+
+            // Apply enable/disable toggles
+            enableBeepCheckbox.checked = schedule.enableBeep;
+            enableSpeechCheckbox.checked = schedule.enableSpeech;
+            
+            // Apply beep volume
+            beepVolumeSlider.value = schedule.beepVolume; // Use saved value
+            beepVolumeValueDisplay.textContent = `${beepVolumeSlider.value}%`; // Update display with current slider value on input
+
+            // Apply notification duration
+            notificationDurationSlider.value = schedule.notificationDurationMinutes; // Use saved value
+            notificationDurationValueDisplay.textContent = `${notificationDurationSlider.value} minutes`; // Update display with current slider value on input
+
+            // Apply pre-notification delay
+            preNotificationDelayInput.value = schedule.preNotificationDelayMinutes; // Use saved value
+            preNotificationDelayValueDisplay.textContent = `${schedule.preNotificationDelayMinutes} minutes`;
+            
+            // Apply default period duration
+            defaultPeriodDurationInput.value = schedule.defaultPeriodDurationMinutes;
+            defaultPeriodDurationValueDisplay.textContent = `${schedule.defaultPeriodDurationMinutes} minutes`;
+
+            // Apply default break duration
+            defaultBreakDurationInput.value = schedule.defaultBreakDurationMinutes;
+            defaultBreakDurationValueDisplay.textContent = `${schedule.defaultBreakDurationMinutes} minutes`;
+
+            // Update numPeriodsInput value and display if it's visible
+            numPeriodsInput.value = schedule.customNumPeriods;
+            numPeriodsValueDisplay.textContent = `${schedule.customNumPeriods} Periods`;
+
+
+            // Update elements with dynamic theme classes/colors
+            document.querySelectorAll('.text-accent-primary').forEach(el => {
+                el.style.color = `var(--accent-color-600)`;
+            });
+            document.querySelectorAll('.btn-primary').forEach(el => {
+                el.style.backgroundColor = `var(--accent-color-600)`;
+            });
+            // Re-apply input and checkbox specific styling for accent color
+            document.querySelectorAll('input.input-themed, select.input-themed').forEach(input => {
+                input.classList.add('focus:ring-accent-primary');
+                // Ensure text color is theme-primary for inputs
+                input.classList.remove('text-gray-700'); // Remove old color if exists
+                input.classList.add('text-themed-primary');
+            });
+        }
+
+
+        /**
+         * Loads the schedule and settings from localStorage and populates the UI.
+         */
+        function loadSchedule() {
+            const savedSchedule = localStorage.getItem('classPeriodSchedule');
+            const savedLastNotified = localStorage.getItem('lastNotifiedEvent'); // Use generic name
+
+            if (savedSchedule) {
+                const loadedSchedule = JSON.parse(savedSchedule);
+
+                // *** Migration Logic for old schedule structure to new dailyPeriods/dailyActivities ***
+                // This block handles older saves that stored periods/activities globally or with different active day logic.
+                if (loadedSchedule.periodDetails && loadedSchedule.activeDays && !loadedSchedule.dailyPeriods) {
+                    console.log("Migrating old schedule data to new dailyPeriods structure...");
+                    loadedSchedule.dailyPeriods = {};
+                    loadedSchedule.activeDays.forEach(day => {
+                        // For simplicity, copy the old global periodDetails to each active day
+                        loadedSchedule.dailyPeriods[day] = loadedSchedule.periodDetails.slice(0, loadedSchedule.customNumPeriods || 9);
+                    });
+                    delete loadedSchedule.periodDetails;
+                    delete loadedSchedule.activeDays;
+                }
+
+                if (loadedSchedule.activitiesDetails && loadedSchedule.activeActivityDays && !loadedSchedule.dailyActivities) {
+                     console.log("Migrating old activities data to new dailyActivities structure...");
+                    loadedSchedule.dailyActivities = {};
+                    loadedSchedule.activeActivityDays.forEach(day => {
+                        // Copy old global activities to each active day
+                        loadedSchedule.dailyActivities[day] = loadedSchedule.activitiesDetails;
+                    });
+                    delete loadedSchedule.activitiesDetails;
+                    delete loadedSchedule.activeActivityDays;
+                }
+
+                // Apply the loaded (and potentially migrated) schedule
+                schedule = loadedSchedule;
+
+                // Ensure initial values for new properties if not present in loaded data
+                if (typeof schedule.customNumPeriods === 'undefined') schedule.customNumPeriods = 9;
+                if (typeof schedule.dailyPeriods === 'undefined') schedule.dailyPeriods = {};
+                if (typeof schedule.dailyActivities === 'undefined') schedule.dailyActivities = {};
+                if (typeof schedule.selectedDayForPeriodsEdit === 'undefined') schedule.selectedDayForPeriodsEdit = 'Mon';
+                if (typeof schedule.selectedDayForActivitiesEdit === 'undefined') schedule.selectedDayForActivitiesEdit = 'Mon';
+                if (typeof schedule.accentColor === 'undefined') schedule.accentColor = 'green';
+                if (typeof schedule.darkMode === 'undefined') schedule.darkMode = false;
+                if (typeof schedule.brightness === 'undefined') schedule.brightness = 100;
+                if (typeof schedule.timeStandard === 'undefined') schedule.timeStandard = 'Local';
+                if (typeof schedule.soundType === 'undefined') schedule.soundType = 'simpleBeep';
+                if (typeof schedule.beepWaveform === 'undefined') schedule.beepWaveform = 'sine';
+                if (typeof schedule.beepDurationSeconds === 'undefined') schedule.beepDurationSeconds = 0.5;
+                if (typeof schedule.beepFrequency === 'undefined') schedule.beepFrequency = 880;
+                if (typeof schedule.enableBeep === 'undefined') schedule.enableBeep = true;
+                if (typeof schedule.enableSpeech === 'undefined') schedule.enableSpeech = true;
+                if (typeof schedule.beepVolume === 'undefined') schedule.beepVolume = 100;
+                if (typeof schedule.notificationDurationMinutes === 'undefined') schedule.notificationDurationMinutes = 3;
+                if (typeof schedule.preNotificationDelayMinutes === 'undefined') schedule.preNotificationDelayMinutes = 0;
+                if (typeof schedule.defaultPeriodDurationMinutes === 'undefined') schedule.defaultPeriodDurationMinutes = 45; // Set default for new property
+                if (typeof schedule.defaultBreakDurationMinutes === 'undefined') schedule.defaultBreakDurationMinutes = 0; // Set default for new property
+                if (typeof schedule.customSoundBase64 === 'undefined') schedule.customSoundBase64 = null; // NEW: Initialize custom sound
+
+
+                statusMessage.textContent = 'Schedule loaded. Notifications active!';
+            } else {
+                statusMessage.textContent = 'No schedule found. Please set your periods and activities.';
+            }
+
+            if (savedLastNotified) {
+                lastNotifiedEvent = JSON.parse(savedLastNotified);
+            }
+            applySettings(); // Apply loaded settings to UI
+        }
+
+        /**
+         * Saves the current general settings from the UI to localStorage.
+         */
+        function saveGlobalSettings() {
+            activateAudioOnUserGesture(); // User gesture, try to activate audio
+
+            // Update schedule object from settings UI
+            schedule.accentColor = accentColorSelect.value;
+            schedule.darkMode = darkModeToggle.checked;
+            schedule.brightness = parseInt(brightnessSlider.value);
+            schedule.timeStandard = timeStandardSelect.value;
+            schedule.soundType = soundTypeSelect.value;
+            schedule.beepWaveform = beepWaveformSelect.value;
+            schedule.beepDurationSeconds = parseFloat(beepDurationSlider.value);
+            schedule.beepFrequency = parseInt(beepFrequencyInput.value);
+            schedule.enableBeep = enableBeepCheckbox.checked;
+            schedule.enableSpeech = enableSpeechCheckbox.checked;
+            schedule.beepVolume = parseInt(beepVolumeSlider.value);
+            schedule.notificationDurationMinutes = parseInt(notificationDurationSlider.value);
+            schedule.preNotificationDelayMinutes = parseInt(preNotificationDelayInput.value);
+            schedule.defaultPeriodDurationMinutes = parseInt(defaultPeriodDurationInput.value); // Save new property
+            schedule.defaultBreakDurationMinutes = parseInt(defaultBreakDurationInput.value); // Save new property
+            // customSoundBase64 is updated by its own file input listener, so no need to read from UI here.
+
+
+            localStorage.setItem('classPeriodSchedule', JSON.stringify(schedule));
+            localStorage.setItem('lastNotifiedEvent', JSON.stringify(lastNotifiedEvent)); // Save last notified state
+            statusMessage.textContent = 'Settings saved successfully!';
+            showMessageBox('Settings Saved', 'Your preferences have been saved!', [{ text: 'OK', className: 'primary' }]);
+            
+            applySettings(); // Re-apply settings immediately after saving
+            updateDashboard(); // Update dashboard with new time settings
+        }
+
+        /**
+         * Saves period data specifically for the currently selected day.
+         */
+        function savePeriods() {
+            const currentDay = schedule.selectedDayForPeriodsEdit;
+            const newPeriodsForDay = [];
+            for (let i = 0; i < schedule.customNumPeriods; i++) {
+                const timeInput = document.getElementById(`period-time-${i + 1}`);
+                const subjectInput = document.getElementById(`period-subject-${i + 1}`);
+                const classInput = document.getElementById(`period-class-${i + 1}`);
+
+                // Only add if time is set, otherwise skip this period
+                if (timeInput && timeInput.value && timeInput.value !== '00:00') {
+                    newPeriodsForDay.push({
+                        time: timeInput.value,
+                        subject: subjectInput ? subjectInput.value.trim() : '',
+                        className: classInput ? classInput.value.trim() : ''
+                    });
+                }
+            }
+            // Sort periods by time
+            newPeriodsForDay.sort((a, b) => a.time.localeCompare(b.time));
+
+            // Update only the periods for the current day
+            schedule.dailyPeriods[currentDay] = newPeriodsForDay;
+
+            localStorage.setItem('classPeriodSchedule', JSON.stringify(schedule));
+            statusMessage.textContent = `Periods for ${currentDay} saved successfully!`;
+            showMessageBox('Periods Saved', `Periods for ${daysOfWeekFull[daysOfWeekShort.indexOf(currentDay)]} have been saved!`, [{ text: 'OK', className: 'primary' }]);
+            updateNextEventDisplay(); // Update dashboard after saving periods
+            renderCalendar(); // Re-render calendar to reflect changes
+        }
+
+        /**
+         * Saves activity data specifically for the currently selected day.
+         */
+        function saveActivities() {
+            const currentDay = schedule.selectedDayForActivitiesEdit;
+            // The activitiesDetails array for the current day is already being updated live by input change listeners
+            // So we just need to save the entire schedule object to persist these changes.
+            localStorage.setItem('classPeriodSchedule', JSON.stringify(schedule));
+            statusMessage.textContent = `Activities for ${currentDay} saved successfully!`;
+            showMessageBox('Activities Saved', `Activities for ${daysOfWeekFull[daysOfWeekShort.indexOf(currentDay)]} have been saved!`, [{ text: 'OK', className: 'primary' }]);
+            updateNextEventDisplay(); // Update dashboard after saving activities
+            renderCalendar(); // Re-render calendar to reflect changes
+        }
+
+
+        /**
+         * Triggers a test notification (for debugging/demo purposes).
+         */
+        function testNotification() {
+            console.log("Test notification triggered.");
+            const currentSoundType = soundTypeSelect.value;
+            const currentWaveform = beepWaveformSelect.value;
+            const currentFrequency = parseInt(beepFrequencyInput.value);
+            const currentDuration = parseFloat(beepDurationSlider.value);
+            const currentVolume = parseInt(beepVolumeSlider.value);
+
+            const testMessage = "This is a test notification from your Class Period Notifier. Sound and speech will play together with your current settings.";
+            playNotificationSound(currentSoundType, currentWaveform, currentFrequency, currentDuration, currentVolume);
+            sendDesktopNotification('Test Notification', testMessage, 'https://placehold.co/128x128/10B981/ffffff?text=CPN');
+            
+            showMessageBox(
+                'Test Notification',
+                testMessage,
+                [{ text: 'Dismiss', className: 'primary', onPress: stopNotification }]
+            );
+        }
+
+        /**
+         * Checks the current time against the schedule (periods and activities) and triggers notifications.
+         */
+        function checkSchedule() {
+            const now = getAdjustedCurrentTime(); // Use adjusted time
+            const currentDayIndex = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+            const currentDayShort = daysOfWeekShort[currentDayIndex];
+            const todayDate = now.toISOString().slice(0, 10); //YYYY-MM-DD
+
+            const allEvents = [];
+
+            const periodDurationMs = schedule.defaultPeriodDurationMinutes * 60 * 1000;
+            const breakDurationMs = schedule.defaultBreakDurationMinutes * 60 * 1000;
+
+            // Get periods for today
+            const periodsToday = schedule.dailyPeriods[currentDayShort] || [];
+            periodsToday.forEach((period, index) => {
+                if (period.time && period.time !== '00:00') {
+                    const [periodHour, periodMinute] = period.time.split(':').map(Number);
+                    const scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), periodHour, periodMinute, 0);
+                    
+                    // Add period start notification event
+                    allEvents.push({
+                        type: 'period_start',
+                        id: `${currentDayShort}-period-${index}`, // Unique ID for event tracking
+                        scheduledDateTime: scheduledTime,
+                        displayData: { subject: period.subject, className: period.className, index: index + 1 }
+                    });
+
+                    // Add break end notification event IF break duration is set
+                    if (breakDurationMs > 0) {
+                        const periodEndTime = new Date(scheduledTime.getTime() + periodDurationMs);
+                        const breakEndTime = new Date(periodEndTime.getTime() + breakDurationMs);
+                        
+                        allEvents.push({
+                            type: 'break_end',
+                            id: `${currentDayShort}-break-end-after-period-${index}`,
+                            scheduledDateTime: breakEndTime,
+                            displayData: { nextPeriodIndex: index + 2, isLastPeriod: (index + 1) >= periodsToday.length }
+                        });
+                    }
+                }
+            });
+
+            // Get activities for today
+            const activitiesToday = schedule.dailyActivities[currentDayShort] || [];
+            activitiesToday.forEach((activity, index) => {
+                if (activity.time && activity.time !== '00:00') {
+                    const [activityHour, activityMinute] = activity.time.split(':').map(Number);
+                    const scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), activityHour, activityMinute, 0);
+                    allEvents.push({
+                        type: 'activity',
+                        id: `${currentDayShort}-activity-${index}`, // Unique ID for event tracking
+                        scheduledDateTime: scheduledTime,
+                        displayData: { name: activity.name, details: activity.details, index: index + 1 }
+                    });
+                }
+            });
+
+            // Sort all events by scheduled time (earliest first) to process them in order
+            allEvents.sort((a, b) => a.scheduledDateTime.getTime() - b.scheduledDateTime.getTime());
+
+            // Iterate through events to find those that should trigger a notification now
+            allEvents.forEach(event => {
+                const targetNotificationTime = new Date(event.scheduledDateTime.getTime() - schedule.preNotificationDelayMinutes * 60 * 1000);
+                
+                // Compare current time to target notification time (exact minute)
+                const currentMinuteCheck = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                const targetMinuteCheck = `${String(targetNotificationTime.getHours()).padStart(2, '0')}:${String(targetNotificationTime.getMinutes()).padStart(2, '0')}`;
+
+                // Check if it's the exact minute for notification and not already notified (using unique ID)
+                if (currentMinuteCheck === targetMinuteCheck &&
+                    !(lastNotifiedEvent.day === todayDate && lastNotifiedEvent.id === event.id)) {
+                    
+                    let notificationMessage = '';
+                    if (event.type === 'period_start') {
+                        const subjectText = event.displayData.subject ? ` for ${event.displayData.subject}` : '';
+                        const classText = event.displayData.className ? ` (Class ${event.displayData.className})` : '';
+                        notificationMessage = `It's time for ${currentDayShort}'s Period ${event.displayData.index}${subjectText}${classText}!`;
+                    } else if (event.type === 'activity') { // activity
+                        const detailsText = event.displayData.details ? ` (${event.displayData.details})` : '';
+                        notificationMessage = `It's time for your ${currentDayShort} activity: ${event.displayData.name}! ${detailsText}`;
+                    } else if (event.type === 'break_end') {
+                        if (schedule.defaultBreakDurationMinutes > 0 && schedule.preNotificationDelayMinutes > 0) {
+                            notificationMessage = `Your break ends in ${schedule.preNotificationDelayMinutes} minutes.`;
+                            if (!event.displayData.isLastPeriod) {
+                                notificationMessage += ` Next period (Period ${event.displayData.nextPeriodIndex}) is starting soon.`;
+                            }
+                        } else if (schedule.defaultBreakDurationMinutes > 0 && schedule.preNotificationDelayMinutes === 0) {
+                             notificationMessage = `Break over! Time to transition.`;
+                             if (!event.displayData.isLastPeriod) {
+                                notificationMessage += ` Next period (Period ${event.displayData.nextPeriodIndex}) is starting now.`;
+                            }
+                        } else { // Fallback if for some reason break duration was set but now is 0 or something unexpected
+                            notificationMessage = `Your break is ending. Time to transition!`;
+                        }
+                    }
+
+
+                    // Prepend delay message if applicable, but be careful not to double-prefix break ending messages
+                    if (schedule.preNotificationDelayMinutes > 0 && event.type !== 'break_end') {
+                        notificationMessage = `Heads up! In ${schedule.preNotificationDelayMinutes} minutes: ` + notificationMessage;
+                    }
+
+                    playNotificationSound(
+                        schedule.soundType,
+                        schedule.beepWaveform,
+                        schedule.beepFrequency,
+                        schedule.beepDurationSeconds,
+                        schedule.beepVolume
+                    );
+                    speakMessage(notificationMessage);
+
+                    showMessageBox(
+                        'Upcoming Event Notification',
+                        notificationMessage,
+                        [{ text: 'Dismiss', className: 'primary', onPress: stopNotification }]
+                    );
+
+                    lastNotifiedEvent = { day: todayDate, id: event.id }; // Save the unique ID
+                    localStorage.setItem('lastNotifiedEvent', JSON.stringify(lastNotifiedEvent));
+                }
+            });
+
+            updateNextEventDisplay(); // Update next event display every minute
+        }
+
+        /**
+         * Resets all schedule data (periods and activities) to their default empty states.
+         */
+        function resetSchedule() {
+            showMessageBox(
+                'Confirm Reset',
+                'Are you sure you want to clear ALL your class and activity schedule data? This cannot be undone.',
+                [
+                    { text: 'Cancel', className: 'secondary', onPress: () => {} },
+                    { text: 'Reset', className: 'primary bg-red-500 hover:bg-red-600', onPress: () => {
+                        // Reset dailyPeriods and dailyActivities to empty objects
+                        schedule.dailyPeriods = {};
+                        schedule.dailyActivities = {};
+                        
+                        localStorage.setItem('classPeriodSchedule', JSON.stringify(schedule));
+                        localStorage.removeItem('lastNotifiedEvent'); // Clear last notified state
+                        lastNotifiedEvent = { day: null, type: null, index: -1 }; // Reset in memory
+
+                        // Re-initialize UI for the currently selected day (which will be blank)
+                        generatePeriodInputs(); 
+                        generateActivityInputs();
+
+                        statusMessage.textContent = 'All schedule data has been reset.';
+                        updateDashboard(); // Update dashboard after reset
+                        showMessageBox('Schedule Reset', 'All your schedule data has been cleared.', [{ text: 'OK', className: 'primary' }]);
+                        renderCalendar(); // Re-render calendar after reset
+                    }}
+                ]
+            );
+        }
+
+        /**
+         * Exports the entire schedule (all daily periods and activities) to a CSV file.
+         */
+        function exportScheduleToFile() {
+            let csvContent = "Day,Time,Subject,Class,Name,Details\n"; // Header row
+
+            // Export Periods for each day
+            daysOfWeekShort.forEach(dayShort => {
+                const periodsForDay = schedule.dailyPeriods[dayShort] || [];
+                periodsForDay.forEach(period => {
+                    if (period.time && period.time !== '00:00') {
+                        const subject = period.subject ? `"${period.subject.replace(/"/g, '""')}"` : ''; // Handle commas/quotes
+                        const className = period.className ? `"${period.className.replace(/"/g, '""')}"` : '';
+                        csvContent += `${dayShort},${period.time},${subject},${className},,\n`;
+                    }
+                });
+            });
+
+            // Export Activities for each day
+            daysOfWeekShort.forEach(dayShort => {
+                const activitiesForDay = schedule.dailyActivities[dayShort] || [];
+                activitiesForDay.forEach(activity => {
+                    if (activity.time && activity.time !== '00:00') {
+                        const name = activity.name ? `"${activity.name.replace(/"/g, '""')}"` : '';
+                        const details = activity.details ? `"${activity.details.replace(/"/g, '""')}"` : '';
+                        csvContent += `${dayShort},${activity.time},,,"${name}","${details}"\n`;
+                    }
+                });
+            });
+
+            // Create a Blob and download the file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) { // feature detection
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'class_schedule.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showMessageBox('Export Successful', 'Your schedule has been exported to class_schedule.csv', [{ text: 'OK', className: 'primary' }]);
+            } else {
+                showMessageBox('Export Failed', 'Your browser does not support downloading files directly. Please copy the schedule text manually.', [{ text: 'OK', className: 'primary' }]);
+            }
+        }
+
+
+        /**
+         * Parses CSV text into the new dailyPeriods and dailyActivities structure.
+         * Expected headers (case-insensitive): Day, Time, Subject, Class, Name, Details.
+         * 'Day' column is crucial for per-day scheduling.
+         * @param {string} csvText - The raw CSV content as a string.
+         */
+        function parseTimetableCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length <= 1) return { dailyPeriods: {}, dailyActivities: {} };
+
+            // Robust CSV parsing for quoted fields
+            const parseCsvLine = (line) => {
+                const results = [];
+                let inQuote = false;
+                let currentField = '';
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        if (inQuote && i + 1 < line.length && line[i+1] === '"') {
+                            // Escaped quote
+                            currentField += '"';
+                            i++; // Skip next quote
+                        } else {
+                            inQuote = !inQuote;
+                        }
+                    } else if (char === ',' && !inQuote) {
+                        results.push(currentField.trim());
+                        currentField = '';
+                    } else {
+                        currentField += char;
+                    }
+                }
+                results.push(currentField.trim()); // Push the last field
+                return results;
+            };
+
+
+            const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
+            const parsedDailyPeriods = {};
+            const parsedDailyActivities = {};
+
+            const dataLines = lines.slice(1);
+
+            dataLines.forEach(line => {
+                const values = parseCsvLine(line);
+
+                const rowData = {};
+                headers.forEach((header, index) => {
+                    rowData[header] = values[index];
+                });
+
+                const dayRaw = rowData['day'];
+                const time = rowData['time'];
+                
+                if (!dayRaw || !time) {
+                    console.warn("Skipping row due to missing Day or Time:", rowData);
+                    return;
+                }
+
+                // Map full day names from CSV to short names
+                let dayShort = daysOfWeekShort[daysOfWeekFull.map(d => d.toLowerCase()).indexOf(dayRaw.toLowerCase())];
+                if (!dayShort) {
+                    // Try matching by short name if full name fails
+                    const shortNameIndex = daysOfWeekShort.map(d => d.toLowerCase()).indexOf(dayRaw.toLowerCase());
+                    if (shortNameIndex !== -1) {
+                        dayShort = daysOfWeekShort[shortNameIndex];
+                    } else {
+                        console.warn(`Unrecognized day format "${dayRaw}" in CSV. Skipping row:`, rowData);
+                        return;
+                    }
+                }
+
+                // Determine if it's a period or an activity based on header presence and content
+                const hasSubject = (headers.includes('subject') && rowData['subject'] !== undefined && rowData['subject'] !== '');
+                const hasClass = (headers.includes('class') && rowData['class'] !== undefined && rowData['class'] !== '');
+                const hasName = (headers.includes('name') && rowData['name'] !== undefined && rowData['name'] !== '');
+                const hasDetails = (headers.includes('details') && rowData['details'] !== undefined && rowData['details'] !== '');
+
+                if (time) {
+                    // Prioritize period if subject/class are present and activity fields are empty
+                    if ((hasSubject || hasClass) && !(hasName || hasDetails)) {
+                        if (!parsedDailyPeriods[dayShort]) parsedDailyPeriods[dayShort] = [];
+                        parsedDailyPeriods[dayShort].push({
+                            time: time,
+                            subject: rowData['subject'] || '',
+                            className: rowData['class'] || ''
+                        });
+                    } else if ((hasName || hasDetails) && !(hasSubject || hasClass)) {
+                        // Prioritize activity if name/details are present and period fields are empty
+                        if (!parsedDailyActivities[dayShort]) parsedDailyActivities[dayShort] = [];
+                        parsedDailyActivities[dayShort].push({
+                            time: time,
+                            name: rowData['name'] || '',
+                            details: rowData['details'] || ''
+                        });
+                    } else {
+                        // If both types of fields are present (e.g., subject and name) or all are empty,
+                        // default to activity as it's more general for "events"
+                        console.warn("Ambiguous row (has both period and/or activity fields, or all empty), treating as activity:", rowData);
+                        if (!parsedDailyActivities[dayShort]) parsedDailyActivities[dayShort] = [];
+                        parsedDailyActivities[dayShort].push({
+                            time: time,
+                            name: rowData['name'] || rowData['subject'] || '', // Use subject as name if name is empty
+                            details: rowData['details'] || rowData['class'] || '' // Use class as details if details is empty
+                        });
+                    }
+                }
+            });
+
+            // Sort periods and activities within each day by time
+            for (const day in parsedDailyPeriods) {
+                parsedDailyPeriods[day].sort((a, b) => a.time.localeCompare(b.time));
+            }
+            for (const day in parsedDailyActivities) {
+                parsedDailyActivities[day].sort((a, b) => a.time.localeCompare(b.time));
+            }
+
+            return { dailyPeriods: parsedDailyPeriods, dailyActivities: parsedDailyActivities };
+        }
+
+        /**
+         * Processes the timetable file selected by the user.
+         * This now fully replaces the daily schedules with the content from the CSV.
+         */
+        function processTimetableFile() {
+            const file = timetableFileInput.files[0];
+            if (!file) {
+                showMessageBox('No File Selected', 'Please select a CSV or text file to upload.', [{ text: 'OK', className: 'primary' }]);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const fileContent = e.target.result;
+                    const parsedData = parseTimetableCSV(fileContent);
+
+                    // Replace the entire dailyPeriods and dailyActivities with parsed data
+                    schedule.dailyPeriods = parsedData.dailyPeriods;
+                    schedule.dailyActivities = parsedData.dailyActivities;
+
+                    // Determine max customNumPeriods from parsed data for UI consistency
+                    let maxPeriodsInCsv = 0;
+                    for (const day in schedule.dailyPeriods) {
+                        maxPeriodsInCsv = Math.max(maxPeriodsInCsv, schedule.dailyPeriods[day].length);
+                    }
+                    schedule.customNumPeriods = Math.max(maxPeriodsInCsv, 1); // Ensure at least 1
+
+                    // Update UI inputs to reflect the new schedule structure
+                    numPeriodsInput.value = schedule.customNumPeriods;
+                    numPeriodsValueDisplay.textContent = `${schedule.customNumPeriods} Periods`;
+                    scheduleDaySelector.value = schedule.selectedDayForPeriodsEdit; // Keep current selected day
+                    activityDaySelector.value = schedule.selectedDayForActivitiesEdit; // Keep current selected day
+
+                    // Re-render inputs for the current selected days on respective pages
+                    generatePeriodInputs(); 
+                    generateActivityInputs();
+
+                    saveGlobalSettings(); // Save the new, imported schedule
+                    showMessageBox('Timetable Loaded', 'Your timetable has been successfully loaded! All previous schedules were replaced.', [{ text: 'OK', className: 'primary' }]);
+                    showPage('savedSchedulesPage'); // Go to Saved Schedules to see the new data
+                } catch (error) {
+                    console.error("Error processing timetable file:", error);
+                    showMessageBox('Error', 'Failed to process timetable. Please ensure it\'s a valid CSV/text file with the correct format (including a "Day" column). Error: ' + error.message, [{ text: 'OK', className: 'primary' }]);
+                }
+            };
+            reader.onerror = () => {
+                showMessageBox('File Read Error', 'Failed to read the file. Please try again.', [{ text: 'OK', className: 'primary' }]);
+            };
+            reader.readAsText(file);
+        }
+
+        /**
+         * Renders the saved periods and activities on the 'Saved Schedules' page, grouped by day.
+         */
+        function renderSavedSchedules() {
+            dailySchedulesContainer.innerHTML = ''; // Clear previous content
+
+            let hasContentToDisplay = false;
+
+            // Iterate through each day of the week to display the schedule
+            daysOfWeekShort.forEach((dayShort, index) => {
+                const dayFull = daysOfWeekFull[index];
+                const dailyEvents = [];
+
+                // Add periods for this day
+                const periodsForDay = schedule.dailyPeriods[dayShort] || [];
+                periodsForDay.forEach((period, pIndex) => {
+                    if (period.time && period.time !== '00:00') {
+                        dailyEvents.push({
+                            type: 'period',
+                            time: period.time,
+                            description: `Period ${pIndex + 1}: ${period.subject || 'No Subject'} (Class: ${period.className || 'N/A'})`
+                        });
+                    }
+                });
+
+                // Add activities for this day
+                const activitiesForDay = schedule.dailyActivities[dayShort] || [];
+                activitiesForDay.forEach((activity) => {
+                    if (activity.time && activity.time !== '00:00') {
+                        dailyEvents.push({
+                            type: 'activity',
+                            time: activity.time,
+                            description: `Activity: ${activity.name || 'No Name'} (${activity.details || 'No Details'})`
+                        });
+                    }
+                });
+
+                if (dailyEvents.length > 0) {
+                    hasContentToDisplay = true;
+                    // Sort events for the day by time
+                    dailyEvents.sort((a, b) => a.time.localeCompare(b.time));
+
+                    const dayCard = document.createElement('div');
+                    dayCard.className = 'day-schedule-card';
+
+                    const dayTitle = document.createElement('h3');
+                    dayTitle.className = 'day-schedule-title';
+                    dayTitle.textContent = dayFull;
+                    dayCard.appendChild(dayTitle);
+
+                    dailyEvents.forEach(event => {
+                        const eventItemDiv = document.createElement('div');
+                        eventItemDiv.className = 'event-item';
+
+                        const eventTimeSpan = document.createElement('span');
+                        eventTimeSpan.className = 'event-time';
+                        eventTimeSpan.textContent = formatTime(new Date(`2000-01-01T${event.time}`), false); // Format for display
+
+                        const eventDetailsSpan = document.createElement('span');
+                        eventDetailsSpan.className = 'event-details';
+                        eventDetailsSpan.textContent = event.description;
+
+                        eventItemDiv.appendChild(eventTimeSpan);
+                        eventItemDiv.appendChild(eventDetailsSpan);
+                        dayCard.appendChild(eventItemDiv);
+                    });
+                    dailySchedulesContainer.appendChild(dayCard);
+                }
+            });
+
+            if (!hasContentToDisplay) {
+                dailySchedulesContainer.innerHTML = '<p class="text-themed-muted text-center">No schedule data to display. Please set a schedule on the "New Schedule" or "Activities" page.</p>';
+            }
+        }
+
+        /**
+         * Loads the current schedule data for the selected day into the "New Schedule" page for editing.
+         */
+        function editSchedule() {
+            // Find the first day with periods or activities to pre-select, otherwise default to Monday
+            const daysWithContent = daysOfWeekShort.filter(day => 
+                (schedule.dailyPeriods[day] && schedule.dailyPeriods[day].length > 0) ||
+                (schedule.dailyActivities[day] && schedule.dailyActivities[day].length > 0)
+            );
+            
+            let dayToLoad = 'Mon';
+            if (daysWithContent.length > 0) {
+                // Pick the first day with content based on the order of daysOfWeekShort
+                dayToLoad = daysWithContent[0];
+            }
+            
+            schedule.selectedDayForPeriodsEdit = dayToLoad;
+            schedule.selectedDayForActivitiesEdit = dayToLoad; // Also set for activities page if user switches there.
+            
+            // Set the page title to indicate editing
+            schedulePageTitle.textContent = "Edit Existing Schedule";
+            // Navigate to the schedule page, which will trigger generatePeriodInputs and populate for selected day
+            showPage('schedulePage');
+            statusMessage.textContent = 'Editing existing schedule. Remember to save changes!';
+        }
+
+        /**
+         * Toggles the visibility of the sidebar (hamburger menu).
+         */
+        function toggleSidebar() {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.classList.toggle('open');
+            hamburgerIcon.classList.toggle('open');
+            // Accessibility: Announce state change
+            if (sidebar.classList.contains('open')) {
+                hamburgerIcon.setAttribute('aria-expanded', 'true');
+                // Set focus to the first actionable item in the sidebar
+                sidebar.querySelector('.sidebar-nav-item')?.focus();
+            } else {
+                hamburgerIcon.setAttribute('aria-expanded', 'false');
+                hamburgerIcon.focus(); // Return focus to the hamburger icon
+            }
+        }
+
+        /**
+         * Closes the sidebar if it's open.
+         */
+        function closeSidebar() {
+            if (sidebar.classList.contains('open')) {
+                toggleSidebar();
+            }
+        }
+
+
+        // --- Calendar View Functions ---
+
+        /**
+         * Renders the calendar grid for the currentCalendarDate.
+         */
+        function renderCalendar() {
+            // Clear existing days but keep the weekday headers
+            // Only remove children that are not 'calendar-weekday'
+            Array.from(calendarGrid.children).forEach(child => {
+                if (!child.classList.contains('calendar-weekday')) {
+                    child.remove();
+                }
+            });
+
+
+            currentMonthYearDisplay.textContent = `${monthNames[currentCalendarDate.getMonth()]} ${currentCalendarDate.getFullYear()}`;
+
+            const firstDayOfMonth = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
+            const daysInMonth = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0).getDate();
+            const firstDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sunday, 1 = Monday...
+
+            const today = new Date(); // To mark the current day
+
+            // Add empty days for the beginning of the week if the month doesn't start on Sunday
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.classList.add('calendar-day', 'other-month');
+                calendarGrid.appendChild(emptyDay);
+            }
+
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.classList.add('calendar-day');
+                dayElement.textContent = day;
+                dayElement.dataset.day = day; // Store day number
+
+                const currentDayFullDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), day);
+                const currentDayShort = daysOfWeekShort[currentDayFullDate.getDay()];
+
+                // Check if it's the current day
+                if (currentCalendarDate.getFullYear() === today.getFullYear() &&
+                    currentCalendarDate.getMonth() === today.getMonth() &&
+                    day === today.getDate()) {
+                    dayElement.classList.add('current-day');
+                }
+
+                // Add event indicators (periods and activities)
+                const hasPeriods = (schedule.dailyPeriods[currentDayShort] && schedule.dailyPeriods[currentDayShort].length > 0);
+                const hasActivities = (schedule.dailyActivities[currentDayShort] && schedule.dailyActivities[currentDayShort].length > 0);
+
+                if (hasPeriods || hasActivities) {
+                    const indicatorContainer = document.createElement('div');
+                    indicatorContainer.classList.add('calendar-event-indicator');
+                    if (hasPeriods) {
+                        const dot = document.createElement('span');
+                        dot.classList.add('dot');
+                        indicatorContainer.appendChild(dot);
+                    }
+                    if (hasActivities) {
+                        const square = document.createElement('span');
+                        square.classList.add('square');
+                        indicatorContainer.appendChild(square);
+                    }
+                    dayElement.appendChild(indicatorContainer);
+                }
+
+                dayElement.addEventListener('click', () => showDayDetails(currentDayFullDate));
+                calendarGrid.appendChild(dayElement);
+            }
+
+            // Fill the rest of the grid with empty days from next month
+            const totalDaysRendered = firstDayOfWeek + daysInMonth;
+            // The number of cells needed is 42 (6 rows * 7 days) to ensure a consistent grid.
+            // If the month spans across 5 weeks, this will fill the remaining cells.
+            const remainingCells = 42 - totalDaysRendered; 
+            for (let i = 0; i < remainingCells; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.classList.add('calendar-day', 'other-month');
+                calendarGrid.appendChild(emptyDay);
+            }
+        }
+
+        /**
+         * Changes the displayed month in the calendar.
+         * @param {number} offset - -1 for previous month, 1 for next month.
+         */
+        function changeCalendarMonth(offset) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
+            renderCalendar();
+        }
+
+        /**
+         * Displays a modal with detailed events for a selected day.
+         * @param {Date} date - The date object for the selected day.
+         */
+        function showDayDetails(date) {
+            const dayFull = daysOfWeekFull[date.getDay()];
+            const dayShort = daysOfWeekShort[date.getDay()];
+            const formattedDate = `${dayFull}, ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+
+            const eventsForDay = [];
+
+            // Get periods for this day
+            const periodsForDay = schedule.dailyPeriods[dayShort] || [];
+            periodsForDay.forEach((period, pIndex) => {
+                if (period.time && period.time !== '00:00') {
+                    eventsForDay.push({
+                        time: period.time,
+                        description: `Period ${pIndex + 1}: ${period.subject || 'No Subject'} (Class: ${period.className || 'N/A'})`,
+                        type: 'period'
+                    });
+                }
+            });
+
+            // Get activities for this day
+            const activitiesForDay = schedule.dailyActivities[dayShort] || [];
+            activitiesForDay.forEach((activity) => {
+                if (activity.time && activity.time !== '00:00') {
+                    eventsForDay.push({
+                        time: activity.time,
+                        description: `Activity: ${activity.name || 'No Name'} (${activity.details || 'No Details'})`,
+                        type: 'activity'
+                    });
+                }
+            });
+
+            // Sort events by time
+            eventsForDay.sort((a, b) => a.time.localeCompare(b.time));
+
+            let contentHtml = '';
+            if (eventsForDay.length > 0) {
+                contentHtml = '<ul>';
+                eventsForDay.forEach(event => {
+                    const eventTimeFormatted = formatTime(new Date(`2000-01-01T${event.time}`), false);
+                    contentHtml += `<li><strong>${eventTimeFormatted}:</strong> ${event.description}</li>`;
+                });
+                contentHtml += '</ul>';
+            } else {
+                contentHtml = '<p class="text-themed-muted">No events scheduled for this day.</p>';
+            }
+
+            showMessageBox(
+                `Schedule for ${formattedDate}`,
+                `<div class="day-details-modal-content">${contentHtml}</div>`,
+                [{ text: 'Close', className: 'primary' }]
+            );
+        }
+
+        // --- AI Schedule Functions (NEW) ---
+
+        /**
+         * Calls the Gemini API to generate a schedule based on user input.
+         */
+        async function generateAISchedule() {
+            const promptText = aiScheduleInput.value.trim();
+            if (!promptText) {
+                showMessageBox('Input Needed', 'Please describe the schedule you want to generate.', [{ text: 'OK', className: 'primary' }]);
+                return;
+            }
+
+            aiLoadingSpinner.classList.remove('hidden');
+            aiScheduleOutput.classList.add('hidden'); // Hide previous output
+            aiSuggestedPeriods.innerHTML = '';
+            aiSuggestedActivities.innerHTML = '';
+            currentSuggestedSchedule = { periods: [], activities: [] }; // Reset
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({
+                    role: "user",
+                    parts: [{ text: `Generate a daily schedule based on the following request. Provide the output as a JSON object with two arrays: 'periods' and 'activities'.
+                    Each 'period' object should have 'time' (HH:MM), 'subject', and 'className'.
+                    Each 'activity' object should have 'time' (HH:MM), 'name', and 'details'.
+                    Ensure all times are in HH:MM 24-hour format.
+                    Keep period durations implied to be ${schedule.defaultPeriodDurationMinutes} minutes, and breaks implied to be ${schedule.defaultBreakDurationMinutes} minutes unless specified.
+                    Organize the schedule chronologically by time.
+                    
+                    User request: "${promptText}"` }]
+                });
+
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                periods: {
+                                    type: "ARRAY",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            time: { "type": "STRING" },
+                                            subject: { "type": "STRING" },
+                                            className: { "type": "STRING" }
+                                        },
+                                        required: ["time", "subject"] // ClassName can be optional in schema.
+                                    }
+                                },
+                                activities: {
+                                    type: "ARRAY",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            time: { "type": "STRING" },
+                                            name: { "type": "STRING" },
+                                            details: { "type": "STRING" }
+                                        },
+                                        required: ["time", "name"] // Details can be optional in schema.
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+
+                const apiKey = ""; // Canvas will provide this at runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                // --- Start of Error Fix ---
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    
+                    const jsonString = result.candidates[0].content.parts[0].text;
+                    
+                    if (!jsonString || jsonString.trim() === '') {
+                        showMessageBox('AI Response Error', 'The AI returned an empty response. Please try rephrasing your request.', [{ text: 'OK', className: 'primary' }]);
+                        return;
+                    }
+
+                    try {
+                        const parsedJson = JSON.parse(jsonString);
+
+                        if (parsedJson.periods || parsedJson.activities) {
+                            currentSuggestedSchedule.periods = parsedJson.periods || [];
+                            currentSuggestedSchedule.activities = parsedJson.activities || [];
+                            displayAISuggestion(currentSuggestedSchedule);
+                        } else {
+                            showMessageBox('AI Response Error', 'The AI did not return a valid schedule structure. Please try rephrasing your request.', [{ text: 'OK', className: 'primary' }]);
+                        }
+                    } catch (parseError) {
+                        console.error("Error parsing AI response JSON:", parseError);
+                        showMessageBox('AI Response Error', 'The AI returned invalid JSON. Please try again or rephrase your request. Raw response: <pre>' + jsonString + '</pre>', [{ text: 'OK', className: 'primary' }]);
+                    }
+
+                } else {
+                    console.error("AI API response structure unexpected:", result);
+                    showMessageBox('AI Response Error', 'Could not get a valid response from the AI. Please try again or rephrase your request. Check console for details.', [{ text: 'OK', className: 'primary' }]);
+                }
+                // --- End of Error Fix ---
+
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                showMessageBox('AI Request Failed', 'There was an error communicating with the AI service. Please check your internet connection or try again later. Details: ' + error.message, [{ text: 'OK', className: 'primary' }]);
+            } finally {
+                aiLoadingSpinner.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Displays the AI-generated schedule suggestion in the UI.
+         * @param {object} suggestion - The object containing periods and activities arrays.
+         */
+        function displayAISuggestion(suggestion) {
+            aiSuggestedPeriods.innerHTML = '';
+            aiSuggestedActivities.innerHTML = '';
+            aiScheduleOutput.classList.remove('hidden');
+
+            if (suggestion.periods && suggestion.periods.length > 0) {
+                let periodHtml = '<div class="ai-output-title">Periods:</div><ul>';
+                suggestion.periods.forEach(p => {
+                    periodHtml += `<li>${p.time}: <strong>${p.subject}</strong> (${p.className || 'N/A'})</li>`;
+                });
+                periodHtml += '</ul>';
+                aiSuggestedPeriods.innerHTML = periodHtml;
+            }
+
+            if (suggestion.activities && suggestion.activities.length > 0) {
+                let activityHtml = '<div class="ai-output-title">Activities:</div><ul>';
+                suggestion.activities.forEach(a => {
+                    activityHtml += `<li>${a.time}: <strong>${a.name}</strong> (${a.details || 'N/A'})</li>`;
+                });
+                activityHtml += '</ul>';
+                aiSuggestedActivities.innerHTML = activityHtml;
+            }
+
+            if (suggestion.periods.length === 0 && suggestion.activities.length === 0) {
+                aiSuggestedPeriods.innerHTML = '<p class="text-themed-muted">The AI did not suggest any periods or activities based on your request. Try being more specific!</p>';
+            }
+        }
+
+        /**
+         * Applies the AI-generated schedule to the selected day.
+         */
+        function applyAISuggestion() {
+            const selectedDay = aiApplyDaySelector.value;
+            if (!selectedDay) {
+                showMessageBox('Select Day', 'Please select a day to apply the suggested schedule to.', [{ text: 'OK', className: 'primary' }]);
+                return;
+            }
+
+            showMessageBox(
+                'Confirm Apply AI Schedule',
+                `Are you sure you want to replace the current schedule for <strong>${daysOfWeekFull[daysOfWeekShort.indexOf(selectedDay)]}</strong> with the AI-suggested schedule? This action will overwrite existing periods and activities for that day.`,
+                [
+                    { text: 'Cancel', className: 'secondary' },
+                    { text: 'Apply', className: 'primary', onPress: () => {
+                        // Apply periods
+                        schedule.dailyPeriods[selectedDay] = currentSuggestedSchedule.periods.map(p => ({
+                            time: p.time,
+                            subject: p.subject,
+                            className: p.className || '' // Ensure className is present
+                        }));
+                        // Apply activities
+                        schedule.dailyActivities[selectedDay] = currentSuggestedSchedule.activities.map(a => ({
+                            time: a.time,
+                            name: a.name,
+                            details: a.details || '' // Ensure details is present
+                        }));
+                        
+                        // Sort them after applying
+                        schedule.dailyPeriods[selectedDay].sort((a, b) => a.time.localeCompare(b.time));
+                        schedule.dailyActivities[selectedDay].sort((a, b) => a.time.localeCompare(b.time));
+
+                        saveGlobalSettings(); // Save the updated schedule to local storage
+                        aiScheduleOutput.classList.add('hidden'); // Hide the suggestion output
+                        showMessageBox('Schedule Applied!', `The AI-suggested schedule has been applied to ${daysOfWeekFull[daysOfWeekShort.indexOf(selectedDay)]}.`, [{ text: 'OK', className: 'primary' }]);
+                        
+                        // Update the relevant pages if they are open
+                        if (scheduleDaySelector.value === selectedDay) {
+                            generatePeriodInputs();
+                            populatePeriodInputsFromSchedule();
+                        }
+                        if (activityDaySelector.value === selectedDay) {
+                            generateActivityInputs();
+                        }
+                        renderSavedSchedules(); // Ensure saved schedules view updates
+                        renderCalendar(); // Ensure calendar view updates
+                        updateNextEventDisplay(); // Update dashboard
+                    }}
+                ]
+            );
+        }
+
+        /**
+         * Discards the currently displayed AI suggestion.
+         */
+        function discardAISuggestion() {
+            currentSuggestedSchedule = { periods: [], activities: [] }; // Clear in-memory suggestion
+            aiScheduleOutput.classList.add('hidden'); // Hide the suggestion output
+            aiScheduleInput.value = ''; // Clear the input text area
+            showMessageBox('Suggestion Discarded', 'The AI schedule suggestion has been discarded.', [{ text: 'OK', className: 'primary' }]);
+        }
+
+
+        // --- Event Listeners ---
+
+        // Hamburger menu toggle
+        hamburgerIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar); // Close sidebar when clicking outside
+
+        // Day selector for periods
+        scheduleDaySelector.addEventListener('change', (e) => {
+            schedule.selectedDayForPeriodsEdit = e.target.value;
+            currentEditingDayDisplay.textContent = daysOfWeekFull[daysOfWeekShort.indexOf(schedule.selectedDayForPeriodsEdit)];
+            generatePeriodInputs(); // Re-generate inputs for the new day
+            populatePeriodInputsFromSchedule(); // Populate with data for the new day
+        });
+
+        // Day selector for activities
+        activityDaySelector.addEventListener('change', (e) => {
+            schedule.selectedDayForActivitiesEdit = e.target.value;
+            currentEditingActivityDayDisplay.textContent = daysOfWeekFull[daysOfWeekShort.indexOf(schedule.selectedDayForActivitiesEdit)];
+            generateActivityInputs(); // Re-generate inputs for the new day
+        });
+
+
+        accentColorSelect.addEventListener('change', () => {
+            schedule.accentColor = accentColorSelect.value;
+            applySettings();
+        });
+        darkModeToggle.addEventListener('change', () => {
+            schedule.darkMode = darkModeToggle.checked;
+            applySettings();
+        });
+        brightnessSlider.addEventListener('input', applySettings); // Use 'input' for live update
+        timeStandardSelect.addEventListener('change', () => {
+            schedule.timeStandard = timeStandardSelect.value;
+            applySettings();
+        });
+        
+        // Event listeners for sound settings
+        soundTypeSelect.addEventListener('change', () => {
+            schedule.soundType = soundTypeSelect.value;
+            applySettings(); // Will show/hide simple beep options and custom sound options
+        });
+        beepWaveformSelect.addEventListener('change', () => {
+            schedule.beepWaveform = beepWaveformSelect.value;
+            applySettings();
+        });
+        beepDurationSlider.addEventListener('input', () => { // Live update for duration display
+            schedule.beepDurationSeconds = parseFloat(beepDurationSlider.value); // Update schedule property live for test
+            beepDurationValueDisplay.textContent = `${schedule.beepDurationSeconds.toFixed(1)} seconds`;
+            // Play sound only if simpleBeep is selected, otherwise rely on the Test Notification button for other types
+            if (soundTypeSelect.value === 'simpleBeep') {
+                 playNotificationSound(soundTypeSelect.value, beepWaveformSelect.value, parseInt(beepFrequencyInput.value), schedule.beepDurationSeconds, parseInt(beepVolumeSlider.value));
+            }
+        });
+        beepFrequencyInput.addEventListener('input', () => { // Live update for frequency display
+            schedule.beepFrequency = parseInt(beepFrequencyInput.value); // Update schedule property live for test
+            beepFrequencyValueDisplay.textContent = `${schedule.beepFrequency} Hz`;
+            // Play sound only if simpleBeep is selected, otherwise rely on the Test Notification button for other types
+            if (soundTypeSelect.value === 'simpleBeep') {
+                 playNotificationSound(soundTypeSelect.value, beepWaveformSelect.value, schedule.beepFrequency, parseFloat(beepDurationSlider.value), parseInt(beepVolumeSlider.value));
+            }
+        });
+
+        // NEW: Custom sound file input
+        customSoundFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    schedule.customSoundBase64 = e.target.result; // Store Base64 string
+                    customSoundStatus.textContent = `File loaded: ${file.name}`;
+                    // Optionally play a preview of the custom sound when loaded
+                    playNotificationSound('custom', null, null, null, schedule.beepVolume);
+                };
+                reader.onerror = (e) => {
+                    console.error("Error reading file:", e);
+                    customSoundStatus.textContent = "Error loading file.";
+                    schedule.customSoundBase64 = null;
+                };
+                reader.readAsDataURL(file); // Read file as Base64 data URL
+            } else {
+                schedule.customSoundBase64 = null;
+                customSoundStatus.textContent = "No custom sound uploaded.";
+            }
+            saveGlobalSettings(); // Save updated schedule object (with custom sound)
+        });
+
+        // NEW: Clear custom sound function
+        function clearCustomSound() {
+            schedule.customSoundBase64 = null;
+            customSoundFileInput.value = ''; // Clear the file input
+            customSoundStatus.textContent = "No custom sound uploaded.";
+            saveGlobalSettings(); // Save updated schedule object
+            showMessageBox('Custom Sound Cleared', 'Your custom notification sound has been removed.', [{ text: 'OK', className: 'primary' }]);
+        }
+        window.clearCustomSound = clearCustomSound; // Make it globally accessible for the button
+
+        enableBeepCheckbox.addEventListener('change', () => {
+            schedule.enableBeep = enableBeepCheckbox.checked;
+            applySettings();
+        }); // Now labeled 'Enable Sound Notifications'
+        enableSpeechCheckbox.addEventListener('change', () => {
+            schedule.enableSpeech = enableSpeechCheckbox.checked;
+            applySettings();
+        });
+        beepVolumeSlider.addEventListener('input', () => { // Live update for volume display
+            schedule.beepVolume = parseInt(beepVolumeSlider.value); // Update schedule property live for test
+            beepVolumeValueDisplay.textContent = `${schedule.beepVolume}%`;
+            // No direct sound played here, as volume affects all sounds. The test button handles the full sound.
+        });
+        notificationDurationSlider.addEventListener('input', () => { // Live update for duration display
+            schedule.notificationDurationMinutes = parseInt(notificationDurationSlider.value); // Update schedule property live for test
+            notificationDurationValueDisplay.textContent = `${schedule.notificationDurationMinutes} minutes`;
+        });
+        preNotificationDelayInput.addEventListener('input', () => { // Live update for delay display
+            schedule.preNotificationDelayMinutes = parseInt(preNotificationDelayInput.value); // Update schedule property live for test
+            preNotificationDelayValueDisplay.textContent = `${schedule.preNotificationDelayMinutes} minutes`;
+        });
+        defaultPeriodDurationInput.addEventListener('input', () => {
+            schedule.defaultPeriodDurationMinutes = parseInt(defaultPeriodDurationInput.value);
+            defaultPeriodDurationValueDisplay.textContent = `${schedule.defaultPeriodDurationMinutes} minutes`;
+        });
+        defaultBreakDurationInput.addEventListener('input', () => {
+            schedule.defaultBreakDurationMinutes = parseInt(defaultBreakDurationInput.value);
+            defaultBreakDurationValueDisplay.textContent = `${schedule.defaultBreakDurationMinutes} minutes`;
+        });
+
+        // Event listener for custom number of periods
+        numPeriodsInput.addEventListener('input', () => {
+            const newNumPeriods = parseInt(numPeriodsInput.value);
+            if (!isNaN(newNumPeriods) && newNumPeriods >= 1 && newNumPeriods <= 15) {
+                schedule.customNumPeriods = newNumPeriods;
+                numPeriodsValueDisplay.textContent = `${newNumPeriods} Periods`;
+                
+                // Regenerate and populate inputs for the currently selected day
+                generatePeriodInputs(); 
+                populatePeriodInputsFromSchedule(); 
+            }
+        });
+
+        // AI Schedule button event listeners
+        generateAiScheduleButton.addEventListener('click', generateAISchedule);
+        window.applyAISuggestion = applyAISuggestion; // Make global for button
+        window.discardAISuggestion = discardAISuggestion; // Make global for button
+
+
+        // Initial setup on window load
+        window.onload = function() {
+            // Show splash screen
+            const splashScreen = document.getElementById('splashScreen');
+            splashScreen.classList.remove('hidden');
+
+            // Load schedule and apply settings
+            loadSchedule();
+
+            // Set initial page to Dashboard and start its second-by-second time update
+            showPage('dashboardPage');
+
+            // Start checking the schedule every minute (60,000 milliseconds)
+            setInterval(checkSchedule, 60 * 1000);
+
+            // Attach a one-time event listener to the document body to initialize audio context
+            // This is crucial for audio playback in modern browsers due to autoplay policies.
+            // It will attempt to activate audio on the first user interaction.
+            document.body.addEventListener('click', activateAudioOnUserGesture, { once: true });
+            document.body.addEventListener('touchstart', activateAudioOnUserGesture, { once: true });
+            document.body.addEventListener('keydown', activateAudioOnUserGesture, { once: true });
+
+            // Hide splash screen after a delay
+            setTimeout(() => {
+                splashScreen.classList.add('hidden');
+            }, 3000); // Hide after 3 seconds
+        };
+    </script>
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(reg => console.log("Service worker registered:", reg.scope))
+      .catch(err => console.error("Service worker registration failed:", err));
+  }
+</script>
+</body>
+</html>
